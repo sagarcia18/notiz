@@ -1,0 +1,40 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.icon,
+.title {
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+.icon {
+  width: 72px;
+  font-size: 48px;
+}
+
+.title {
+  width: 100%;
+  font-size: 40px;
+  font-weight: 700;
+}
+
+.title::placeholder,
+.icon::placeholder {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.error {
+  color: var(--error);
+}

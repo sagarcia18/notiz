@@ -3,6 +3,14 @@
 ## Status
 
 Phase 0 (architecture & scaffolding) done on branch `phase-0-scaffolding`.
+Phase 1 (page tree) done on branch `phase-1-page-tree` (branched from phase 0).
+
+## Phase 1 - what was built
+
+- Shared: page/tree/trash Zod schemas; `sortKeyBetween` base-62 fractional keys (no dependency).
+- Server: `/api/pages` (tree, create, get, patch title/icon, move with cycle check) and `/api/trash` (list roots, restore, delete forever, empty). Title changes and purges keep `pages_fts` in sync. Trash rules are in `docs/ARCHITECTURE.md`.
+- Web: sidebar page tree (expand/collapse, add subpage, trash) with native HTML5 drag-and-drop (top/bottom quarter of a row = reorder, middle = nest); page view with editable icon + title; trash view with restore, delete forever and empty trash (confirm dialogs).
+- Tests: API tests for pages and trash, sort key and drop-target unit tests.
 
 ## Phase 0 - what was built
 
@@ -21,7 +29,9 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 
 - TypeScript is pinned to `~6.0.3` because typescript-eslint does not support TS 7 yet.
 - pnpm lives in `%USERPROFILE%\.local\bin` (corepack shim), not in Program Files.
+- Phase 1 UI not yet tested in the browser by the user. Sidebar expand state is in memory only (lost on reload). Drag-and-drop has no keyboard alternative yet.
+- Moving pages via DnD reloads the tree after the server answers (no optimistic update).
 
 ## Next step
 
-Phase 1 - Page tree: CRUD, nesting, drag-and-drop reorder in the sidebar, trash with restore, API tests.
+Phase 2 - Block editor: BlockNote in the page view, save `content_json`, plain-text body into `pages_fts`, attachments on disk.

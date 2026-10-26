@@ -1,0 +1,88 @@
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  padding-right: 4px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--hover);
+}
+
+.active {
+  background: var(--hover);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.dropInside {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.dropBefore {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+.dropAfter {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  text-decoration: none;
+}
+
+.icon {
+  margin-right: 6px;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--hover);
+}
+
+.actions {
+  display: none;
+}
+
+.row:hover .actions {
+  display: inline-flex;
+}
+
+.empty {
+  height: 26px;
+  line-height: 26px;
+  color: var(--text-muted);
+  font-size: 13px;
+}

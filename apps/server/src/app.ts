@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import type { AppDatabase } from './db/client.js';
 import { handleError } from './errors.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
+import { registerPageRoutes, registerTrashRoutes } from './routes/pages.routes.js';
 
 export interface BuildAppOptions {
   db: AppDatabase;
@@ -17,5 +18,7 @@ export function buildApp({ db, logger = false }: BuildAppOptions): FastifyInstan
     }),
   );
   registerHealthRoutes(app, db);
+  registerPageRoutes(app, db);
+  registerTrashRoutes(app, db);
   return app;
 }

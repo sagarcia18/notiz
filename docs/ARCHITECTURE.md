@@ -63,7 +63,9 @@ All IDs are UUID strings. Timestamps are ISO-8601 UTC text. JSON columns hold te
 | `is_template`                            | Boolean                                                           |
 | `created_at`, `updated_at`, `deleted_at` | `deleted_at` set = in trash (soft delete)                         |
 
-Trash: deleting a page soft-deletes its whole subtree; restoring restores the subtree. Nothing is hard-deleted except via an explicit "empty trash" action by the user.
+Trash: deleting a page soft-deletes its whole active subtree with one shared `deleted_at` timestamp. The trash lists only "trash roots" (trashed pages whose parent is not trashed at the same moment). Restoring a page restores the descendants that carry the same `deleted_at`; subpages trashed earlier stay in the trash. If the parent is still trashed, the restored page moves to the top level. Invariant: a trashed page never has active descendants. Nothing is hard-deleted except via the explicit "delete forever" / "empty trash" actions, which also remove the `pages_fts` rows.
+
+Sort keys: `sort_order` is a base-62 fractional key (`sortKeyBetween` in `packages/shared/src/sortKey.ts`), compared bytewise. Moving or creating a page computes a key between its new neighbours; siblings are never renumbered.
 
 ### pages_fts (Phase 0)
 
@@ -82,11 +84,21 @@ Database rows are pages whose parent is the database page. Notion "person" prope
 
 All endpoints live under `/api`. Request/response schemas come from `packages/shared`. Errors always use `{ error: { code, message } }` with codes `not_found` (404), `validation_failed` (400), `conflict` (409), `internal` (500).
 
-| Method | Path          | Phase | Purpose                    |
-| ------ | ------------- | ----- | -------------------------- |
-| GET    | `/api/health` | 0     | Server + database liveness |
+| Method | Path                     | Phase | Purpose                                                                      |
+| ------ | ------------------------ | ----- | ---------------------------------------------------------------------------- |
+| GET    | `/api/health`            | 0     | Server + database liveness                                                   |
+| GET    | `/api/pages/tree`        | 1     | Nested tree of active, non-template pages                                    |
+| POST   | `/api/pages`             | 1     | Create `{ parentId?, title?, kind? }` as last child (201)                    |
+| GET    | `/api/pages/:id`         | 1     | Page detail                                                                  |
+| PATCH  | `/api/pages/:id`         | 1     | Update `{ title?, icon? }`                                                   |
+| POST   | `/api/pages/:id/move`    | 1     | Move `{ parentId, beforeId? \| afterId? }`; 409 on cycles or foreign anchors |
+| DELETE | `/api/pages/:id`         | 1     | Move page + subtree to trash (204)                                           |
+| GET    | `/api/trash`             | 1     | Trash roots, newest first                                                    |
+| POST   | `/api/trash/:id/restore` | 1     | Restore page + subtree trashed with it                                       |
+| DELETE | `/api/trash/:id`         | 1     | Delete page + subtree forever (204)                                          |
+| DELETE | `/api/trash`             | 1     | Empty trash (204)                                                            |
 
-Later phases add pages, attachments, databases/views, dashboards, search and templates.
+Later phases add attachments, databases/views, dashboards, search and templates.
 
 ## Decisions
 

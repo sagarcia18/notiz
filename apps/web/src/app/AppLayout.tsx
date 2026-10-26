@@ -1,12 +1,16 @@
 import type { ReactElement } from 'react';
-import { Outlet } from 'react-router';
+import { Link, Outlet } from 'react-router';
+import { SidebarPages } from '../features/pages/SidebarPages';
 import styles from './AppLayout.module.css';
 
 export function AppLayout(): ReactElement {
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
-        <div className={styles.brand}>Notiz</div>
+        <Link to="/" className={styles.brand}>
+          Notiz
+        </Link>
+        <SidebarPages />
       </aside>
       <main className={styles.main}>
         <Outlet />

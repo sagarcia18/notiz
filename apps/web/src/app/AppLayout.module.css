@@ -12,8 +12,11 @@
 }
 
 .brand {
+  display: block;
   font-weight: 600;
   padding: 4px 8px;
+  color: var(--text);
+  text-decoration: none;
 }
 
 .main {
