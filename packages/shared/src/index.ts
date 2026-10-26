@@ -4,3 +4,7 @@ export * from './errors.js';
 export * from './sortKey.js';
 export * from './content.js';
 export * from './attachments.js';
+export * from './propertyValueSchema.js';
+export * from './databases.js';
+export * from './propertyValues.js';
+export * from './views.js';

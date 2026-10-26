@@ -1,3 +1,4 @@
+import type { PageKind } from '@notiz/shared';
 import { type ReactElement, useState } from 'react';
 import { NavLink, useMatch, useNavigate } from 'react-router';
 import { PageTree } from './PageTree';
@@ -22,9 +23,9 @@ export function SidebarPages(): ReactElement {
     });
   };
 
-  const create = (parentId: string | null): void => {
+  const create = (parentId: string | null, kind: PageKind = 'doc'): void => {
     createPage.mutate(
-      { parentId },
+      { parentId, kind },
       {
         onSuccess: (page) => {
           if (parentId !== null) setExpanded(parentId, true);
@@ -57,6 +58,15 @@ export function SidebarPages(): ReactElement {
         >
           +
         </button>
+        <button
+          type="button"
+          className={styles.add}
+          title="New database"
+          aria-label="New database"
+          onClick={() => create(null, 'database')}
+        >
+          ▦
+        </button>
       </div>
       {tree.data && (
         <PageTree
@@ -64,7 +74,7 @@ export function SidebarPages(): ReactElement {
           activeId={pageId}
           expandedIds={expandedIds}
           onToggle={(id) => setExpanded(id, !expandedIds.has(id))}
-          onAddChild={create}
+          onAddChild={(id) => create(id)}
           onTrash={trash}
           onMove={(id, input) => {
             movePage.mutate({ id, input });

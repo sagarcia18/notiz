@@ -53,6 +53,10 @@ export function useUpdatePage(id: string): UseMutationResult<PageDetail, Error, 
     onSuccess: async (page) => {
       queryClient.setQueryData(pageKeys.detail(id), page);
       await queryClient.invalidateQueries({ queryKey: pageKeys.tree });
+      if (page.databaseId !== null) {
+        // Same prefix as databaseKeys.all: the row's title shows in its database views.
+        await queryClient.invalidateQueries({ queryKey: ['databases', page.databaseId] });
+      }
     },
   });
 }

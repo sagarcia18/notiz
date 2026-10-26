@@ -5,6 +5,15 @@
 Phase 0 (architecture & scaffolding) done on branch `phase-0-scaffolding`.
 Phase 1 (page tree) done on branch `phase-1-page-tree` (branched from phase 0).
 Phase 2 (block editor) done on branch `phase-2-block-editor` (branched from phase 1).
+Phase 3 (databases) done on branch `phase-3-databases` (branched from phase 2).
+
+## Phase 3 - what was built
+
+- No new dependencies. Migration `0003_databases` (`db_properties`, `db_views`).
+- Shared: property/option/view/filter/sort schemas (`databases.ts`, `views.ts`), value validation and type conversion (`propertyValues.ts`), `operatorsByType`; `PageDetail.databaseId` + `properties`, `PATCH { properties }`.
+- Server: `databases.service` (properties; type changes convert values, deletes strip values and view settings), `views.service` (CRUD, last view protected, `listViewRows`), `rows.service`, pure `rowQuery` (filters/sorts), `rowValues` (validated merge), `databaseSetup` (default title property + table view, default status options). Rows hidden from the tree; pages cannot be created in / moved into databases; purge removes properties and views. Details in `docs/ARCHITECTURE.md`.
+- Web: `features/databases` - `DatabaseView` (view tabs: add table/board, double-click rename, delete; toolbar: filter, sort, visible columns / board settings), `TableView` (inline cell editors per type, add/trash rows, property menu: rename, type, options with colors and status groups, move, hide, delete; column resize), `BoardView` (columns per option + "No value", native drag-and-drop changes value and manual order, add card per column, chosen card properties), `RowProperties` panel on row pages. Sidebar: "New database" button (▦); databases have no "add subpage".
+- Tests: value validation/conversion, filter/sort engine, databases/properties/rows API (guards, conversions, cleanup, purge), views API, board drop planning, table column config.
 
 ## Phase 2 - what was built
 
@@ -45,7 +54,11 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 - Saving sends the whole document each time; fine for normal pages, revisit if very large pages feel slow.
 - The lazy editor chunk is ~960 kB (Vite size warning); acceptable for a local app.
 - Search UI is not built yet; `pages_fts.body` is filled from now on (pages created earlier get a body on their next edit).
+- Phase 3 UI not yet tested in the browser by the user (table editing, property menu, filters/sorts, board drag-and-drop, row page panel, dark mode).
+- Databases: the selected view tab is not remembered across reloads; no row peek/side panel (rows open as full pages); no date ranges/times, `multi_select`, number formats, formulas or relations (Phase 7). Property values are not part of full-text search.
+- Board drop sends two requests (value, then position) without a transaction; table and board updates are not optimistic (they refetch after the server answers). Columns are reordered with Move ←/→ in the property menu, not by dragging.
+- A row restored from the trash after its database was deleted moves to the top level as a normal page; its old `properties_json` stays but is no longer shown.
 
 ## Next step
 
-Phase 3 - Databases: `db_properties` and `db_views`, rows as pages with `properties_json`, table and board views.
+Phase 4 - Dashboards: `dashboard_widgets`, generic server-side aggregation service (e.g. count rows by status group), Recharts widgets on a react-grid-layout grid.

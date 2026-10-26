@@ -19,6 +19,7 @@ export interface PagePatch {
   parentId?: string | null;
   sortOrder?: string;
   contentJson?: string;
+  propertiesJson?: string;
 }
 
 const now = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
@@ -27,11 +28,14 @@ export function findPage(db: AppDatabase, id: string): PageRow | undefined {
   return db.select().from(pages).where(eq(pages.id, id)).get();
 }
 
+/** Active, non-template pages without database rows (rows live inside their database). */
 export function listActivePages(db: AppDatabase): PageRow[] {
+  const isDatabaseRow = sql`exists (
+    select 1 from pages parent where parent.id = ${pages.parentId} and parent.kind = 'database')`;
   return db
     .select()
     .from(pages)
-    .where(and(isNull(pages.deletedAt), eq(pages.isTemplate, false)))
+    .where(and(isNull(pages.deletedAt), eq(pages.isTemplate, false), sql`not ${isDatabaseRow}`))
     .orderBy(asc(pages.sortOrder))
     .all();
 }
@@ -44,6 +48,16 @@ export function listActiveChildren(db: AppDatabase, parentId: string | null): Pa
     .where(and(parentFilter, isNull(pages.deletedAt)))
     .orderBy(asc(pages.sortOrder))
     .all();
+}
+
+/** All children including trashed ones, e.g. to rewrite database row values. */
+export function listAllChildren(db: AppDatabase, parentId: string): PageRow[] {
+  return db.select().from(pages).where(eq(pages.parentId, parentId)).all();
+}
+
+/** Rewrites stored row values without touching `updated_at` (schema-driven change). */
+export function setPropertiesJson(db: AppDatabase, id: string, propertiesJson: string): void {
+  db.update(pages).set({ propertiesJson }).where(eq(pages.id, id)).run();
 }
 
 export function insertPage(db: AppDatabase, row: NewPageRow): PageRow {
@@ -117,6 +131,8 @@ function purgeWhere(db: AppDatabase, prefix: SQL, idsQuery: SQL): string[] {
   const ids = db.all<{ id: string }>(sql`${prefix} ${idsQuery}`).map((row) => row.id);
   db.run(sql`${prefix} delete from pages_fts where page_id in (${idsQuery})`);
   db.run(sql`${prefix} delete from attachments where page_id in (${idsQuery})`);
+  db.run(sql`${prefix} delete from db_properties where database_id in (${idsQuery})`);
+  db.run(sql`${prefix} delete from db_views where database_id in (${idsQuery})`);
   db.run(sql`${prefix} delete from pages where id in (${idsQuery})`);
   return ids;
 }

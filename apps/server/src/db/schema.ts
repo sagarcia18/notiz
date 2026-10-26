@@ -43,3 +43,35 @@ export const attachments = sqliteTable(
   },
   (table) => [index('attachments_page_idx').on(table.pageId)],
 );
+
+export const dbProperties = sqliteTable(
+  'db_properties',
+  {
+    id: text('id').primaryKey(),
+    databaseId: text('database_id')
+      .notNull()
+      .references(() => pages.id),
+    name: text('name').notNull(),
+    type: text('type', {
+      enum: ['title', 'text', 'number', 'select', 'status', 'date', 'checkbox', 'url'],
+    }).notNull(),
+    optionsJson: text('options_json').notNull().default('[]'),
+    sortOrder: text('sort_order').notNull(),
+  },
+  (table) => [index('db_properties_database_idx').on(table.databaseId, table.sortOrder)],
+);
+
+export const dbViews = sqliteTable(
+  'db_views',
+  {
+    id: text('id').primaryKey(),
+    databaseId: text('database_id')
+      .notNull()
+      .references(() => pages.id),
+    type: text('type', { enum: ['table', 'board'] }).notNull(),
+    name: text('name').notNull(),
+    configJson: text('config_json').notNull().default('{}'),
+    sortOrder: text('sort_order').notNull(),
+  },
+  (table) => [index('db_views_database_idx').on(table.databaseId, table.sortOrder)],
+);

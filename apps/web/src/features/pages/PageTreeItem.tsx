@@ -62,7 +62,9 @@ export function PageTreeItem({ node, depth, handlers }: PageTreeItemProps): Reac
           {isExpanded ? '▾' : '▸'}
         </button>
         <Link to={`/pages/${node.id}`} className={styles.title} draggable={false}>
-          <span className={styles.icon}>{node.icon ?? '📄'}</span>
+          <span className={styles.icon}>
+            {node.icon ?? (node.kind === 'database' ? '🗃️' : '📄')}
+          </span>
           {node.title || 'Untitled'}
         </Link>
         <span className={styles.actions}>
@@ -75,15 +77,17 @@ export function PageTreeItem({ node, depth, handlers }: PageTreeItemProps): Reac
           >
             🗑
           </button>
-          <button
-            type="button"
-            className={styles.iconButton}
-            aria-label="Add subpage"
-            title="Add subpage"
-            onClick={() => handlers.onAddChild(node.id)}
-          >
-            +
-          </button>
+          {node.kind !== 'database' && (
+            <button
+              type="button"
+              className={styles.iconButton}
+              aria-label="Add subpage"
+              title="Add subpage"
+              onClick={() => handlers.onAddChild(node.id)}
+            >
+              +
+            </button>
+          )}
         </span>
       </div>
       {isExpanded && (

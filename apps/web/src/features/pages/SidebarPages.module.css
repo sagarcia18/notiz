@@ -15,6 +15,10 @@
   font-weight: 600;
 }
 
+.header > span {
+  flex: 1;
+}
+
 .add {
   width: 22px;
   height: 22px;

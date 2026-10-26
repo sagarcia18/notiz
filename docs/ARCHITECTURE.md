@@ -88,35 +88,73 @@ Files are written to disk first and the row is inserted afterwards; a failed or 
 
 `content_json` stores the BlockNote document (array of blocks) exactly as the editor produces it. The server validates only the outline (every block has a `type`; `children` are blocks) and keeps all other fields. Every content save also rewrites `pages_fts.body` with `extractPlainText` (`packages/shared/src/content.ts`): one line per block, inline text, link text, table cells, file names and captions. The web app saves the whole document, debounced (800 ms) and serialized, and flushes pending changes when the page is left.
 
+### db_properties (Phase 3)
+
+| Column         | Notes                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------ |
+| `id`           | PK                                                                                                     |
+| `database_id`  | FK -> pages.id (a page of kind `database`)                                                             |
+| `name`         |                                                                                                        |
+| `type`         | `title` \| `text` \| `number` \| `select` \| `status` \| `date` \| `checkbox` \| `url`                 |
+| `options_json` | Choices `{ id, name, color, group? }`; `group` (`todo` \| `in_progress` \| `complete`) only for status |
+| `sort_order`   | Fractional key; creation order of the properties                                                       |
+
+### db_views (Phase 3)
+
+| Column        | Notes                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------- |
+| `id`          | PK                                                                                        |
+| `database_id` | FK -> pages.id                                                                            |
+| `type`        | `table` \| `board`                                                                        |
+| `name`        |                                                                                           |
+| `config_json` | `viewConfigSchema`: `filters`, `sorts`, `columns`, `groupByPropertyId`, `cardPropertyIds` |
+| `sort_order`  | Fractional key; tab order                                                                 |
+
+### Databases (Phase 3)
+
+- A new database page gets one `title` property ("Name") and one table view ("Table"). Each database has exactly one title property; it cannot be retyped or deleted, and its value is the row page's `title` (so search and the page header keep working).
+- **Rows** are pages (kind `doc`) whose parent is the database page. Their other values live in `properties_json`, keyed by property id: strings for text/url, numbers, booleans, option ids for select/status, `YYYY-MM-DD` for dates. Values are validated against the property type on every write (`isValidPropertyValue`); `PATCH /api/pages/:id { properties }` merges, `null` removes a value. `PageDetail` carries `databaseId` and `properties` for rows.
+- Rows are hidden from the sidebar tree. Pages cannot be created in or moved into a database except through `POST /api/databases/:id/rows`; reordering rows inside their database uses the normal move endpoint.
+- **Schema changes rewrite data in the same transaction** (rows in the trash included): deleting a property removes its values and its references in view configs; changing the type converts values with `convertPropertyValue` (options become their names and back, numbers/dates are parsed from text, anything else is cleared) and drops filters/grouping on it; removing an option clears the values that used it.
+- **Querying:** `GET /api/views/:id/rows` loads the active rows and applies the view's filters (all must match; filters on missing properties or with operators unfit for the type are skipped) and sorts in TypeScript (`services/rowQuery.ts`). Empty values sort last; ties and views without sorts keep the manual `sort_order`. Board grouping is done in the web app from these rows.
+- Deleting a database forever also deletes its `db_properties` and `db_views` rows.
+
 ### Planned tables
 
-- `db_properties` (Phase 3): id, database_id, name, type (`title` | `text` | `number` | `select` | `status` | `date` | `checkbox` | `url`), options_json, sort_order. For `status`, options_json holds choices with colors **and** their group (`todo` | `in_progress` | `complete`) so dashboards can count open tasks by group. `multi_select` and other Notion types are decided in Phase 7.
-- `db_views` (Phase 3): id, database_id, type (`table` | `board`), name, config_json (filters, sorts, group-by, visible columns).
 - `dashboard_widgets` (Phase 4): id, dashboard_id, config_json, layout_json.
 
-Database rows are pages whose parent is the database page. Notion "person" properties (e.g. Assignee) have no equivalent in a single-user app and are skipped on import.
+`multi_select` and other Notion types are decided in Phase 7. Notion "person" properties (e.g. Assignee) have no equivalent in a single-user app and are skipped on import.
 
 ## API overview
 
 All endpoints live under `/api`. Request/response schemas come from `packages/shared`. Errors always use `{ error: { code, message } }` with codes `not_found` (404), `validation_failed` (400), `conflict` (409), `internal` (500).
 
-| Method | Path                         | Phase | Purpose                                                                      |
-| ------ | ---------------------------- | ----- | ---------------------------------------------------------------------------- |
-| GET    | `/api/health`                | 0     | Server + database liveness                                                   |
-| GET    | `/api/pages/tree`            | 1     | Nested tree of active, non-template pages                                    |
-| POST   | `/api/pages`                 | 1     | Create `{ parentId?, title?, kind? }` as last child (201)                    |
-| GET    | `/api/pages/:id`             | 1     | Page detail                                                                  |
-| PATCH  | `/api/pages/:id`             | 1, 2  | Update `{ title?, icon?, content? }`                                         |
-| POST   | `/api/pages/:id/move`        | 1     | Move `{ parentId, beforeId? \| afterId? }`; 409 on cycles or foreign anchors |
-| DELETE | `/api/pages/:id`             | 1     | Move page + subtree to trash (204)                                           |
-| GET    | `/api/trash`                 | 1     | Trash roots, newest first                                                    |
-| POST   | `/api/trash/:id/restore`     | 1     | Restore page + subtree trashed with it                                       |
-| DELETE | `/api/trash/:id`             | 1     | Delete page + subtree forever (204)                                          |
-| DELETE | `/api/trash`                 | 1     | Empty trash (204)                                                            |
-| POST   | `/api/pages/:id/attachments` | 2     | Upload one file (multipart, field `file`, max 50 MB) (201)                   |
-| GET    | `/api/attachments/:id`       | 2     | Download / display an attachment                                             |
+| Method | Path                            | Phase | Purpose                                                                      |
+| ------ | ------------------------------- | ----- | ---------------------------------------------------------------------------- |
+| GET    | `/api/health`                   | 0     | Server + database liveness                                                   |
+| GET    | `/api/pages/tree`               | 1     | Nested tree of active, non-template pages                                    |
+| POST   | `/api/pages`                    | 1     | Create `{ parentId?, title?, kind? }` as last child (201)                    |
+| GET    | `/api/pages/:id`                | 1     | Page detail                                                                  |
+| PATCH  | `/api/pages/:id`                | 1, 2  | Update `{ title?, icon?, content? }`                                         |
+| POST   | `/api/pages/:id/move`           | 1     | Move `{ parentId, beforeId? \| afterId? }`; 409 on cycles or foreign anchors |
+| DELETE | `/api/pages/:id`                | 1     | Move page + subtree to trash (204)                                           |
+| GET    | `/api/trash`                    | 1     | Trash roots, newest first                                                    |
+| POST   | `/api/trash/:id/restore`        | 1     | Restore page + subtree trashed with it                                       |
+| DELETE | `/api/trash/:id`                | 1     | Delete page + subtree forever (204)                                          |
+| DELETE | `/api/trash`                    | 1     | Empty trash (204)                                                            |
+| POST   | `/api/pages/:id/attachments`    | 2     | Upload one file (multipart, field `file`, max 50 MB) (201)                   |
+| GET    | `/api/attachments/:id`          | 2     | Download / display an attachment                                             |
+| GET    | `/api/databases/:id`            | 3     | Properties and views of a database                                           |
+| POST   | `/api/databases/:id/properties` | 3     | Add property `{ name, type, options? }` (201)                                |
+| PATCH  | `/api/properties/:id`           | 3     | Rename, retype or change options (converts row values)                       |
+| DELETE | `/api/properties/:id`           | 3     | Delete property and its values (204); not the title                          |
+| POST   | `/api/databases/:id/views`      | 3     | Add view `{ type, name? }` (201)                                             |
+| PATCH  | `/api/views/:id`                | 3     | Update `{ name?, config? }`                                                  |
+| DELETE | `/api/views/:id`                | 3     | Delete view (204); 409 for the last one                                      |
+| GET    | `/api/views/:id/rows`           | 3     | Rows filtered and sorted by the view                                         |
+| POST   | `/api/databases/:id/rows`       | 3     | Create row `{ title?, properties? }` as last row (201)                       |
 
-Later phases add databases/views, dashboards, search and templates.
+`PATCH /api/pages/:id` also accepts `properties` for database rows (Phase 3). Later phases add dashboards, search and templates.
 
 ## Decisions
 

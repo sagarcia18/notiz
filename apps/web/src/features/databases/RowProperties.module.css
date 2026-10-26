@@ -1,0 +1,42 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.back {
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+.name {
+  width: 160px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.value {
+  flex: 1;
+  min-width: 0;
+  border-radius: 3px;
+}
+
+.value:hover {
+  background: var(--hover);
+}
+
+.error {
+  color: var(--error);
+}

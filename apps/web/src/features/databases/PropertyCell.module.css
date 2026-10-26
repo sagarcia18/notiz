@@ -1,0 +1,55 @@
+.input {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 3px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.input:focus {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.textCell {
+  display: flex;
+  align-items: center;
+}
+
+.link {
+  padding: 0 4px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.checkbox {
+  margin: 6px;
+}
+
+.choice {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 6px;
+  cursor: pointer;
+}
+
+.empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+/* Invisible native select on top of the pill: one click opens the option list. */
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}

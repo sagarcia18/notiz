@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { pageContentSchema } from './content.js';
+import { propertyValuesSchema } from './propertyValueSchema.js';
 
 export const pageKindSchema = z.enum(['doc', 'database', 'dashboard']);
 
@@ -32,6 +33,9 @@ export const pageDetailSchema = pageSummarySchema.extend({
   createdAt: z.string(),
   updatedAt: z.string(),
   content: pageContentSchema,
+  /** Set when the page is a row of a database page. */
+  databaseId: pageIdSchema.nullable(),
+  properties: propertyValuesSchema,
 });
 
 export type PageDetail = z.infer<typeof pageDetailSchema>;
@@ -52,11 +56,12 @@ export const updatePageInputSchema = z
     title: titleSchema.optional(),
     icon: iconSchema.optional(),
     content: pageContentSchema.optional(),
+    /** Database rows only: merged into the stored values; `null` clears one. */
+    properties: propertyValuesSchema.optional(),
   })
-  .refine(
-    (input) => input.title !== undefined || input.icon !== undefined || input.content !== undefined,
-    { message: 'Nothing to update' },
-  );
+  .refine((input) => Object.values(input).some((value) => value !== undefined), {
+    message: 'Nothing to update',
+  });
 
 export type UpdatePageInput = z.infer<typeof updatePageInputSchema>;
 

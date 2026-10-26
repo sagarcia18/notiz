@@ -6,15 +6,19 @@ import {
   type PageDetail,
   type PageSummary,
   type PageTreeNode,
+  type PropertyValues,
   type UpdatePageInput,
   extractPlainText,
   pageContentSchema,
   sortKeyBetween,
 } from '@notiz/shared';
 import type { AppDatabase } from '../db/client.js';
-import { ConflictError, NotFoundError } from '../errors.js';
+import { ConflictError, NotFoundError, ValidationError } from '../errors.js';
 import * as repo from '../repositories/pages.repository.js';
 import type { PageRow } from '../repositories/pages.repository.js';
+import { parseValues } from './databaseJson.js';
+import { initDatabase } from './databaseSetup.js';
+import { mergeRowValues } from './rowValues.js';
 
 export function toSummary(row: PageRow): PageSummary {
   return {
@@ -31,12 +35,21 @@ function parseContent(json: string | null): PageContent {
   return json === null ? [] : pageContentSchema.parse(JSON.parse(json) as unknown);
 }
 
-function toDetail(row: PageRow): PageDetail {
+/** The id of the database the page is a row of, or null. */
+function databaseIdOf(db: AppDatabase, row: PageRow): string | null {
+  const parent = row.parentId === null ? undefined : repo.findPage(db, row.parentId);
+  return parent?.kind === 'database' ? parent.id : null;
+}
+
+function toDetail(db: AppDatabase, row: PageRow): PageDetail {
+  const databaseId = databaseIdOf(db, row);
   return {
     ...toSummary(row),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     content: parseContent(row.contentJson),
+    databaseId,
+    properties: databaseId === null ? {} : parseValues(row.propertiesJson),
   };
 }
 
@@ -76,14 +89,14 @@ export function getPageTree(db: AppDatabase): PageTreeNode[] {
 }
 
 export function getPage(db: AppDatabase, id: string): PageDetail {
-  return toDetail(requireActivePage(db, id));
+  return toDetail(db, requireActivePage(db, id));
 }
 
 export function createPage(db: AppDatabase, input: CreatePageInput): PageDetail {
   const parentId = input.parentId ?? null;
   return db.transaction(() => {
-    if (parentId !== null) {
-      requireActivePage(db, parentId);
+    if (parentId !== null && requireActivePage(db, parentId).kind === 'database') {
+      throw new ConflictError('Database rows are created through the database');
     }
     const row = repo.insertPage(db, {
       id: randomUUID(),
@@ -93,24 +106,37 @@ export function createPage(db: AppDatabase, input: CreatePageInput): PageDetail 
       sortOrder: sortKeyBetween(lastChildKey(db, parentId), null),
     });
     repo.insertSearchEntry(db, row.id, row.title);
-    return toDetail(row);
+    if (row.kind === 'database') {
+      initDatabase(db, row.id);
+    }
+    return toDetail(db, row);
   });
 }
 
 export function updatePage(db: AppDatabase, id: string, input: UpdatePageInput): PageDetail {
   return db.transaction(() => {
-    requireActivePage(db, id);
-    const { content, ...fields } = input;
+    const current = requireActivePage(db, id);
+    const { content, properties, ...fields } = input;
     const contentJson = content === undefined ? undefined : JSON.stringify(content);
-    const row = repo.updatePage(db, id, { ...fields, contentJson });
+    const propertiesJson =
+      properties === undefined ? undefined : rowValuesJson(db, current, properties);
+    const row = repo.updatePage(db, id, { ...fields, contentJson, propertiesJson });
     if (input.title !== undefined) {
       repo.updateSearchTitle(db, id, input.title);
     }
     if (content !== undefined) {
       repo.updateSearchBody(db, id, extractPlainText(content));
     }
-    return toDetail(row);
+    return toDetail(db, row);
   });
+}
+
+function rowValuesJson(db: AppDatabase, row: PageRow, values: PropertyValues): string {
+  const databaseId = databaseIdOf(db, row);
+  if (databaseId === null) {
+    throw new ValidationError('Only database rows have properties');
+  }
+  return mergeRowValues(db, databaseId, row.propertiesJson, values);
 }
 
 function sortKeyForMove(siblings: PageRow[], input: MovePageInput): string {
@@ -130,9 +156,12 @@ function sortKeyForMove(siblings: PageRow[], input: MovePageInput): string {
 
 export function movePage(db: AppDatabase, id: string, input: MovePageInput): PageSummary {
   return db.transaction(() => {
-    requireActivePage(db, id);
+    const page = requireActivePage(db, id);
     if (input.parentId !== null) {
-      requireActivePage(db, input.parentId);
+      const parent = requireActivePage(db, input.parentId);
+      if (parent.kind === 'database' && page.parentId !== parent.id) {
+        throw new ConflictError('Pages cannot be moved into a database');
+      }
       if (repo.isSelfOrAncestor(db, id, input.parentId)) {
         throw new ConflictError('A page cannot be moved into itself or one of its subpages');
       }
