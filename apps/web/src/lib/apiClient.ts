@@ -20,7 +20,8 @@ type MutationMethod = 'POST' | 'PATCH' | 'DELETE';
 
 async function request(url: string, init: RequestInit = {}): Promise<Response> {
   const headers: Record<string, string> = { accept: 'application/json' };
-  if (init.body !== undefined) {
+  // FormData bodies get their multipart boundary header from the browser.
+  if (typeof init.body === 'string') {
     headers['content-type'] = 'application/json';
   }
   const response = await fetch(url, { ...init, headers });
@@ -44,6 +45,14 @@ export async function sendJson<T>(
   schema: z.ZodType<T>,
 ): Promise<T> {
   const response = await request(url, { method, body: JSON.stringify(body) });
+  return schema.parse(await response.json());
+}
+
+/** POSTs one file as multipart/form-data and validates the JSON response. */
+export async function uploadFile<T>(url: string, file: File, schema: z.ZodType<T>): Promise<T> {
+  const body = new FormData();
+  body.append('file', file);
+  const response = await request(url, { method: 'POST', body });
   return schema.parse(await response.json());
 }
 

@@ -25,12 +25,29 @@ export class ConflictError extends DomainError {
   }
 }
 
+export class ValidationError extends DomainError {
+  constructor(message: string) {
+    super('validation_failed', message);
+  }
+}
+
 const statusByCode: Record<ErrorCode, number> = {
   not_found: 404,
   validation_failed: 400,
   conflict: 409,
   internal: 500,
 };
+
+/** Fastify and plugin errors for bad requests (malformed body, wrong content type, too large). */
+function isClientError(error: unknown): error is Error & { statusCode: number } {
+  return (
+    error instanceof Error &&
+    'statusCode' in error &&
+    typeof error.statusCode === 'number' &&
+    error.statusCode >= 400 &&
+    error.statusCode < 500
+  );
+}
 
 function toErrorResponse(error: unknown): { status: number; body: ErrorResponse } {
   if (error instanceof DomainError) {
@@ -44,6 +61,12 @@ function toErrorResponse(error: unknown): { status: number; body: ErrorResponse 
     return {
       status: 400,
       body: { error: { code: 'validation_failed', message: message.join('; ') } },
+    };
+  }
+  if (isClientError(error)) {
+    return {
+      status: error.statusCode,
+      body: { error: { code: 'validation_failed', message: error.message } },
     };
   }
   return {

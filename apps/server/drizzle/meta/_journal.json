@@ -15,6 +15,13 @@
       "when": 1793037721307,
       "tag": "0001_pages_fts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793041289221,
+      "tag": "0002_attachments",
+      "breakpoints": true
     }
   ]
 }

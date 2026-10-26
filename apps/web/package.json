@@ -9,6 +9,11 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@blocknote/core": "^0.56.0",
+    "@blocknote/mantine": "^0.56.0",
+    "@blocknote/react": "^0.56.0",
+    "@mantine/core": "^9.7.3",
+    "@mantine/hooks": "^9.7.3",
     "@notiz/shared": "workspace:*",
     "@tanstack/react-query": "^5.104.5",
     "react": "^19.3.1",

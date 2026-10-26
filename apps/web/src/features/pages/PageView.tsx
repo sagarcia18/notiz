@@ -1,8 +1,11 @@
-import type { ReactElement } from 'react';
+import { type ReactElement, Suspense, lazy } from 'react';
 import { useParams } from 'react-router';
 import { PageHeader } from './PageHeader';
 import styles from './PageView.module.css';
 import { usePage, useUpdatePage } from './usePages';
+
+/** BlockNote is large; load it only when a page is opened. */
+const PageBody = lazy(async () => ({ default: (await import('../editor/PageBody')).PageBody }));
 
 export function PageView(): ReactElement {
   const { pageId = '' } = useParams();
@@ -23,7 +26,9 @@ export function PageView(): ReactElement {
         onSave={(input) => updatePage.mutate(input)}
       />
       {updatePage.error && <p className={styles.error}>{updatePage.error.message}</p>}
-      <p className={styles.muted}>The block editor arrives in Phase 2.</p>
+      <Suspense fallback={<p className={styles.muted}>Loading editor…</p>}>
+        <PageBody key={page.data.id} pageId={page.data.id} initialContent={page.data.content} />
+      </Suspense>
     </article>
   );
 }

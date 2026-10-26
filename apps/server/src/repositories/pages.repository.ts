@@ -1,5 +1,5 @@
 import type { PageKind } from '@notiz/shared';
-import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
+import { type SQL, and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import type { AppDatabase } from '../db/client.js';
 import { pages } from '../db/schema.js';
 
@@ -18,6 +18,7 @@ export interface PagePatch {
   icon?: string | null;
   parentId?: string | null;
   sortOrder?: string;
+  contentJson?: string;
 }
 
 const now = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;
@@ -111,24 +112,29 @@ export function listTrashRoots(db: AppDatabase): PageRow[] {
     .filter((page) => ids.has(page.id));
 }
 
-/** Permanently deletes the page, every descendant and their search rows. */
-export function purgeSubtree(db: AppDatabase, id: string): void {
+/** Deletes the pages selected by `idsQuery` with their search and attachment rows. */
+function purgeWhere(db: AppDatabase, prefix: SQL, idsQuery: SQL): string[] {
+  const ids = db.all<{ id: string }>(sql`${prefix} ${idsQuery}`).map((row) => row.id);
+  db.run(sql`${prefix} delete from pages_fts where page_id in (${idsQuery})`);
+  db.run(sql`${prefix} delete from attachments where page_id in (${idsQuery})`);
+  db.run(sql`${prefix} delete from pages where id in (${idsQuery})`);
+  return ids;
+}
+
+/** Permanently deletes the page and every descendant; returns the deleted ids. */
+export function purgeSubtree(db: AppDatabase, id: string): string[] {
   const subtree = sql`
     with recursive subtree(id) as (
       select id from pages where id = ${id}
       union all
       select p.id from pages p join subtree s on p.parent_id = s.id
     )`;
-  db.run(sql`${subtree} delete from pages_fts where page_id in (select id from subtree)`);
-  db.run(sql`${subtree} delete from pages where id in (select id from subtree)`);
+  return purgeWhere(db, subtree, sql`select id from subtree`);
 }
 
-/** Permanently deletes every trashed page. Trashed pages never have active children. */
-export function purgeAllTrashed(db: AppDatabase): void {
-  db.run(
-    sql`delete from pages_fts where page_id in (select id from pages where deleted_at is not null)`,
-  );
-  db.run(sql`delete from pages where deleted_at is not null`);
+/** Permanently deletes every trashed page; returns the deleted ids. Trashed pages never have active children. */
+export function purgeAllTrashed(db: AppDatabase): string[] {
+  return purgeWhere(db, sql``, sql`select id from pages where deleted_at is not null`);
 }
 
 export function insertSearchEntry(db: AppDatabase, pageId: string, title: string): void {
@@ -137,4 +143,8 @@ export function insertSearchEntry(db: AppDatabase, pageId: string, title: string
 
 export function updateSearchTitle(db: AppDatabase, pageId: string, title: string): void {
   db.run(sql`update pages_fts set title = ${title} where page_id = ${pageId}`);
+}
+
+export function updateSearchBody(db: AppDatabase, pageId: string, body: string): void {
+  db.run(sql`update pages_fts set body = ${body} where page_id = ${pageId}`);
 }

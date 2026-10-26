@@ -21,6 +21,7 @@ import {
   restorePage,
   trashPage,
 } from '../services/trash.service.js';
+import type { AttachmentFiles } from '../storage/attachmentFiles.js';
 
 const idParamsSchema = z.object({ id: pageIdSchema });
 
@@ -50,7 +51,11 @@ export function registerPageRoutes(app: FastifyInstance, db: AppDatabase): void 
   });
 }
 
-export function registerTrashRoutes(app: FastifyInstance, db: AppDatabase): void {
+export function registerTrashRoutes(
+  app: FastifyInstance,
+  db: AppDatabase,
+  files: AttachmentFiles,
+): void {
   app.get('/api/trash', () => listTrash(db));
 
   app.post('/api/trash/:id/restore', (request) =>
@@ -58,12 +63,12 @@ export function registerTrashRoutes(app: FastifyInstance, db: AppDatabase): void
   );
 
   app.delete('/api/trash/:id', async (request, reply) => {
-    purgePage(db, idParamsSchema.parse(request.params).id);
+    await purgePage(db, files, idParamsSchema.parse(request.params).id);
     return reply.status(204).send();
   });
 
   app.delete('/api/trash', async (_request, reply) => {
-    emptyTrash(db);
+    await emptyTrash(db, files);
     return reply.status(204).send();
   });
 }

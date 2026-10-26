@@ -2,10 +2,13 @@ import { randomUUID } from 'node:crypto';
 import {
   type CreatePageInput,
   type MovePageInput,
+  type PageContent,
   type PageDetail,
   type PageSummary,
   type PageTreeNode,
   type UpdatePageInput,
+  extractPlainText,
+  pageContentSchema,
   sortKeyBetween,
 } from '@notiz/shared';
 import type { AppDatabase } from '../db/client.js';
@@ -24,8 +27,17 @@ export function toSummary(row: PageRow): PageSummary {
   };
 }
 
+function parseContent(json: string | null): PageContent {
+  return json === null ? [] : pageContentSchema.parse(JSON.parse(json) as unknown);
+}
+
 function toDetail(row: PageRow): PageDetail {
-  return { ...toSummary(row), createdAt: row.createdAt, updatedAt: row.updatedAt };
+  return {
+    ...toSummary(row),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    content: parseContent(row.contentJson),
+  };
 }
 
 /** Builds the nested tree from pages already sorted by sort order. */
@@ -88,9 +100,14 @@ export function createPage(db: AppDatabase, input: CreatePageInput): PageDetail 
 export function updatePage(db: AppDatabase, id: string, input: UpdatePageInput): PageDetail {
   return db.transaction(() => {
     requireActivePage(db, id);
-    const row = repo.updatePage(db, id, input);
+    const { content, ...fields } = input;
+    const contentJson = content === undefined ? undefined : JSON.stringify(content);
+    const row = repo.updatePage(db, id, { ...fields, contentJson });
     if (input.title !== undefined) {
       repo.updateSearchTitle(db, id, input.title);
+    }
+    if (content !== undefined) {
+      repo.updateSearchBody(db, id, extractPlainText(content));
     }
     return toDetail(row);
   });

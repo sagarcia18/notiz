@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { pageContentSchema } from './content.js';
 
 export const pageKindSchema = z.enum(['doc', 'database', 'dashboard']);
 
@@ -30,6 +31,7 @@ export const pageTreeSchema = z.array(pageTreeNodeSchema);
 export const pageDetailSchema = pageSummarySchema.extend({
   createdAt: z.string(),
   updatedAt: z.string(),
+  content: pageContentSchema,
 });
 
 export type PageDetail = z.infer<typeof pageDetailSchema>;
@@ -46,10 +48,15 @@ export const createPageInputSchema = z.object({
 export type CreatePageInput = z.infer<typeof createPageInputSchema>;
 
 export const updatePageInputSchema = z
-  .object({ title: titleSchema.optional(), icon: iconSchema.optional() })
-  .refine((input) => input.title !== undefined || input.icon !== undefined, {
-    message: 'Nothing to update',
-  });
+  .object({
+    title: titleSchema.optional(),
+    icon: iconSchema.optional(),
+    content: pageContentSchema.optional(),
+  })
+  .refine(
+    (input) => input.title !== undefined || input.icon !== undefined || input.content !== undefined,
+    { message: 'Nothing to update' },
+  );
 
 export type UpdatePageInput = z.infer<typeof updatePageInputSchema>;
 

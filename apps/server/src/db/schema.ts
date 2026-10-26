@@ -25,3 +25,21 @@ export const pages = sqliteTable(
   },
   (table) => [index('pages_parent_sort_idx').on(table.parentId, table.sortOrder)],
 );
+
+export const attachments = sqliteTable(
+  'attachments',
+  {
+    id: text('id').primaryKey(),
+    pageId: text('page_id')
+      .notNull()
+      .references(() => pages.id),
+    fileName: text('file_name').notNull(),
+    storedPath: text('stored_path').notNull(),
+    mime: text('mime').notNull(),
+    size: integer('size').notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+  },
+  (table) => [index('attachments_page_idx').on(table.pageId)],
+);

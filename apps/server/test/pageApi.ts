@@ -8,19 +8,22 @@ import {
   pageTreeSchema,
   trashListSchema,
 } from '@notiz/shared';
+import fs from 'node:fs';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { buildApp } from '../src/app.js';
 import type { AppDatabase } from '../src/db/client.js';
-import { createTestDatabase } from './helpers.js';
+import { createTempDataDir, createTestDatabase } from './helpers.js';
 
 /** Thin typed wrapper around app.inject for page and trash API tests. */
 export class PageApi {
   readonly db: AppDatabase = createTestDatabase();
-  readonly app: FastifyInstance = buildApp({ db: this.db });
+  readonly dataDir: string = createTempDataDir();
+  readonly app: FastifyInstance = buildApp({ db: this.db, dataDir: this.dataDir });
 
   async close(): Promise<void> {
     await this.app.close();
     this.db.$client.close();
+    fs.rmSync(this.dataDir, { recursive: true, force: true });
   }
 
   async create(title: string, parentId: string | null = null): Promise<PageDetail> {
@@ -59,6 +62,12 @@ export class PageApi {
 
   purge(id: string): Promise<LightMyRequestResponse> {
     return this.app.inject({ method: 'DELETE', url: `/api/trash/${id}` });
+  }
+
+  searchBody(pageId: string): string | undefined {
+    return this.db.$client
+      .prepare<[string], { body: string }>('select body from pages_fts where page_id = ?')
+      .get(pageId)?.body;
   }
 
   searchTitles(): string[] {

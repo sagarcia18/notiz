@@ -1,0 +1,20 @@
+/* BlockNote pads blocks for its side menu; pull it out so text lines up with the title. */
+.editor {
+  margin-inline: -54px;
+}
+
+.status,
+.statusError {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.statusError {
+  color: var(--error);
+}
+
+.editor :global(.bn-editor) {
+  background: transparent;
+  color: var(--text);
+}

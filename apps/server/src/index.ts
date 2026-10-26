@@ -10,7 +10,7 @@ fs.mkdirSync(config.attachmentsDir, { recursive: true });
 const db = openDatabase(config.databaseFile);
 runMigrations(db);
 
-const app = buildApp({ db, logger: true });
+const app = buildApp({ db, dataDir: config.dataDir, logger: true });
 
 app.addHook('onClose', () => {
   db.$client.close();

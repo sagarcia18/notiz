@@ -71,12 +71,28 @@ Sort keys: `sort_order` is a base-62 fractional key (`sortKeyBetween` in `packag
 
 Standalone FTS5 table (`page_id` unindexed, `title`, `body`), tokenizer `unicode61 remove_diacritics 2` so "deteccion" finds "Detección". Kept in sync by the page service, because `body` is plain text extracted from BlockNote JSON in TypeScript.
 
+### attachments (Phase 2)
+
+| Column         | Notes                                                                        |
+| -------------- | ---------------------------------------------------------------------------- |
+| `id`           | PK                                                                           |
+| `page_id`      | FK -> pages.id                                                               |
+| `file_name`    | Original name as uploaded (shown to the user)                                |
+| `stored_path`  | Relative to `DATA_DIR`: `attachments/<pageId>/<attachmentId>-<safeFileName>` |
+| `mime`, `size` | Content type from the upload, size in bytes                                  |
+| `created_at`   |                                                                              |
+
+Files are written to disk first and the row is inserted afterwards; a failed or oversized upload (limit 50 MB) leaves nothing behind. Moving a page to the trash keeps its files; "delete forever" / "empty trash" delete the rows in the same transaction as the pages and then remove the `attachments/<pageId>` folders. Files whose block was removed from the document stay on disk (no orphan cleanup yet). Downloads are served with `nosniff`, a sandboxing CSP, and `inline` disposition only for images, audio, video and PDF.
+
+### Page content (Phase 2)
+
+`content_json` stores the BlockNote document (array of blocks) exactly as the editor produces it. The server validates only the outline (every block has a `type`; `children` are blocks) and keeps all other fields. Every content save also rewrites `pages_fts.body` with `extractPlainText` (`packages/shared/src/content.ts`): one line per block, inline text, link text, table cells, file names and captions. The web app saves the whole document, debounced (800 ms) and serialized, and flushes pending changes when the page is left.
+
 ### Planned tables
 
 - `db_properties` (Phase 3): id, database_id, name, type (`title` | `text` | `number` | `select` | `status` | `date` | `checkbox` | `url`), options_json, sort_order. For `status`, options_json holds choices with colors **and** their group (`todo` | `in_progress` | `complete`) so dashboards can count open tasks by group. `multi_select` and other Notion types are decided in Phase 7.
 - `db_views` (Phase 3): id, database_id, type (`table` | `board`), name, config_json (filters, sorts, group-by, visible columns).
 - `dashboard_widgets` (Phase 4): id, dashboard_id, config_json, layout_json.
-- `attachments` (Phase 2): id, page_id, file_name, stored_path, mime, size, created_at. Files live at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileName>`; `stored_path` is relative to `DATA_DIR` so the data folder can be moved.
 
 Database rows are pages whose parent is the database page. Notion "person" properties (e.g. Assignee) have no equivalent in a single-user app and are skipped on import.
 
@@ -84,21 +100,23 @@ Database rows are pages whose parent is the database page. Notion "person" prope
 
 All endpoints live under `/api`. Request/response schemas come from `packages/shared`. Errors always use `{ error: { code, message } }` with codes `not_found` (404), `validation_failed` (400), `conflict` (409), `internal` (500).
 
-| Method | Path                     | Phase | Purpose                                                                      |
-| ------ | ------------------------ | ----- | ---------------------------------------------------------------------------- |
-| GET    | `/api/health`            | 0     | Server + database liveness                                                   |
-| GET    | `/api/pages/tree`        | 1     | Nested tree of active, non-template pages                                    |
-| POST   | `/api/pages`             | 1     | Create `{ parentId?, title?, kind? }` as last child (201)                    |
-| GET    | `/api/pages/:id`         | 1     | Page detail                                                                  |
-| PATCH  | `/api/pages/:id`         | 1     | Update `{ title?, icon? }`                                                   |
-| POST   | `/api/pages/:id/move`    | 1     | Move `{ parentId, beforeId? \| afterId? }`; 409 on cycles or foreign anchors |
-| DELETE | `/api/pages/:id`         | 1     | Move page + subtree to trash (204)                                           |
-| GET    | `/api/trash`             | 1     | Trash roots, newest first                                                    |
-| POST   | `/api/trash/:id/restore` | 1     | Restore page + subtree trashed with it                                       |
-| DELETE | `/api/trash/:id`         | 1     | Delete page + subtree forever (204)                                          |
-| DELETE | `/api/trash`             | 1     | Empty trash (204)                                                            |
+| Method | Path                         | Phase | Purpose                                                                      |
+| ------ | ---------------------------- | ----- | ---------------------------------------------------------------------------- |
+| GET    | `/api/health`                | 0     | Server + database liveness                                                   |
+| GET    | `/api/pages/tree`            | 1     | Nested tree of active, non-template pages                                    |
+| POST   | `/api/pages`                 | 1     | Create `{ parentId?, title?, kind? }` as last child (201)                    |
+| GET    | `/api/pages/:id`             | 1     | Page detail                                                                  |
+| PATCH  | `/api/pages/:id`             | 1, 2  | Update `{ title?, icon?, content? }`                                         |
+| POST   | `/api/pages/:id/move`        | 1     | Move `{ parentId, beforeId? \| afterId? }`; 409 on cycles or foreign anchors |
+| DELETE | `/api/pages/:id`             | 1     | Move page + subtree to trash (204)                                           |
+| GET    | `/api/trash`                 | 1     | Trash roots, newest first                                                    |
+| POST   | `/api/trash/:id/restore`     | 1     | Restore page + subtree trashed with it                                       |
+| DELETE | `/api/trash/:id`             | 1     | Delete page + subtree forever (204)                                          |
+| DELETE | `/api/trash`                 | 1     | Empty trash (204)                                                            |
+| POST   | `/api/pages/:id/attachments` | 2     | Upload one file (multipart, field `file`, max 50 MB) (201)                   |
+| GET    | `/api/attachments/:id`       | 2     | Download / display an attachment                                             |
 
-Later phases add attachments, databases/views, dashboards, search and templates.
+Later phases add databases/views, dashboards, search and templates.
 
 ## Decisions
 

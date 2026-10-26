@@ -3,6 +3,7 @@ import type { AppDatabase } from '../db/client.js';
 import { NotFoundError } from '../errors.js';
 import * as repo from '../repositories/pages.repository.js';
 import type { PageRow } from '../repositories/pages.repository.js';
+import type { AttachmentFiles } from '../storage/attachmentFiles.js';
 import { requireActivePage, toSummary } from './pages.service.js';
 
 function requireTrashedPage(db: AppDatabase, id: string): PageRow & { deletedAt: string } {
@@ -54,15 +55,20 @@ export function restorePage(db: AppDatabase, id: string): PageSummary {
   });
 }
 
-export function purgePage(db: AppDatabase, id: string): void {
-  db.transaction(() => {
+/** Deletes the page forever; attachment files go after the rows are committed. */
+export async function purgePage(
+  db: AppDatabase,
+  files: AttachmentFiles,
+  id: string,
+): Promise<void> {
+  const purgedIds = db.transaction(() => {
     requireTrashedPage(db, id);
-    repo.purgeSubtree(db, id);
+    return repo.purgeSubtree(db, id);
   });
+  await files.removePageFolders(purgedIds);
 }
 
-export function emptyTrash(db: AppDatabase): void {
-  db.transaction(() => {
-    repo.purgeAllTrashed(db);
-  });
+export async function emptyTrash(db: AppDatabase, files: AttachmentFiles): Promise<void> {
+  const purgedIds = db.transaction(() => repo.purgeAllTrashed(db));
+  await files.removePageFolders(purgedIds);
 }
