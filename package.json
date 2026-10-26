@@ -1,0 +1,40 @@
+{
+  "name": "notiz",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,green \"pnpm --filter @notiz/server dev\" \"pnpm --filter @notiz/web dev\"",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "format": "prettier --write .",
+    "db:migrate": "pnpm --filter @notiz/server db:migrate",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,css,yml,yaml,html}": "prettier --write"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.5",
+    "concurrently": "^10.0.6",
+    "eslint": "^10.13.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  }
+}

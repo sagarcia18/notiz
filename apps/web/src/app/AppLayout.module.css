@@ -1,0 +1,23 @@
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  padding: 12px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+}
+
+.brand {
+  font-weight: 600;
+  padding: 4px 8px;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 48px 96px;
+}

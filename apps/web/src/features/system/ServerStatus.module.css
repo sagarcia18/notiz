@@ -1,0 +1,11 @@
+.muted {
+  color: var(--text-muted);
+}
+
+.ok {
+  color: var(--ok);
+}
+
+.error {
+  color: var(--error);
+}
