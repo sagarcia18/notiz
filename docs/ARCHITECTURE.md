@@ -119,9 +119,24 @@ Files are written to disk first and the row is inserted afterwards; a failed or 
 - **Querying:** `GET /api/views/:id/rows` loads the active rows and applies the view's filters (all must match; filters on missing properties or with operators unfit for the type are skipped) and sorts in TypeScript (`services/rowQuery.ts`). Empty values sort last; ties and views without sorts keep the manual `sort_order`. Board grouping is done in the web app from these rows.
 - Deleting a database forever also deletes its `db_properties` and `db_views` rows.
 
-### Planned tables
+### dashboard_widgets (Phase 4)
 
-- `dashboard_widgets` (Phase 4): id, dashboard_id, config_json, layout_json.
+| Column         | Notes                                                                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | PK                                                                                                                                                               |
+| `dashboard_id` | FK -> pages.id (a page of kind `dashboard`)                                                                                                                      |
+| `config_json`  | `widgetConfigSchema`: `type` (`kpi` \| `bar` \| `pie`), `title`, `databaseId`, `viewId`, `metric`, `metricPropertyId`, `groupByPropertyId`, `groupByStatusGroup` |
+| `layout_json`  | `{ x, y, w, h }` in grid units; 12 columns, `x + w <= 12`                                                                                                        |
+| `created_at`   | Widget order in the list (the grid places them by layout)                                                                                                        |
+
+### Dashboards (Phase 4)
+
+- A dashboard is a page of kind `dashboard` with widgets instead of content. Like databases, it cannot have subpages (create and move answer 409).
+- **One aggregation service** (`services/aggregation.service.ts`) computes every number: it loads the active rows of `databaseId`, narrows them with the filters of `viewId` (reusing `rowQuery.filterRows`; the view's sorts are irrelevant), then the pure `aggregateRows` applies the metric (`count`, or `sum`/`avg` of a number property; rows without a number are ignored, an average of nothing is `null`). Bar and pie widgets group by a select/status property in option order, or a status property by status group (To-do / In progress / Complete); every option gets a bucket (also with 0), rows without a value or with a removed option go to a trailing "No value" bucket.
+- `GET /api/widgets/:id/data` answers `{ state, total, buckets }`. `unconfigured`: no database chosen yet (or a chart without grouping). `source_missing`: the database is trashed/deleted, the view belongs to another database or is gone, or a property is gone or has an unfitting type. Configs are not rewritten when sources change; the widget just reports `source_missing`.
+- Saving a config checks that it does not resolve to `source_missing` (400 otherwise). New widgets without a layout go below the lowest widget in the left column.
+- Deleting a dashboard forever also deletes its widgets.
+- Web: the widget data query key starts with `['databases', databaseId]`, so every database mutation refreshes the widgets that read from it. `DashboardView` is lazy-loaded (Recharts + react-grid-layout); the grid uses `absoluteStrategy` (no CSS transforms) so the fixed-position settings popover is not displaced, and only changed positions are saved (`PUT /layout`).
 
 `multi_select` and other Notion types are decided in Phase 7. Notion "person" properties (e.g. Assignee) have no equivalent in a single-user app and are skipped on import.
 
@@ -153,8 +168,14 @@ All endpoints live under `/api`. Request/response schemas come from `packages/sh
 | DELETE | `/api/views/:id`                | 3     | Delete view (204); 409 for the last one                                      |
 | GET    | `/api/views/:id/rows`           | 3     | Rows filtered and sorted by the view                                         |
 | POST   | `/api/databases/:id/rows`       | 3     | Create row `{ title?, properties? }` as last row (201)                       |
+| GET    | `/api/dashboards/:id`           | 4     | Widgets of a dashboard                                                       |
+| POST   | `/api/dashboards/:id/widgets`   | 4     | Add widget `{ config, layout? }` (201)                                       |
+| PUT    | `/api/dashboards/:id/layout`    | 4     | Save positions `{ items: [{ id, layout }] }`; returns the dashboard          |
+| PATCH  | `/api/widgets/:id`              | 4     | Update `{ config?, layout? }`                                                |
+| DELETE | `/api/widgets/:id`              | 4     | Delete widget (204)                                                          |
+| GET    | `/api/widgets/:id/data`         | 4     | Aggregated `{ state, total, buckets }`                                       |
 
-`PATCH /api/pages/:id` also accepts `properties` for database rows (Phase 3). Later phases add dashboards, search and templates.
+`PATCH /api/pages/:id` also accepts `properties` for database rows (Phase 3). Later phases add search and templates.
 
 ## Decisions
 

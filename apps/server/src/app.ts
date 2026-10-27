@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import type { AppDatabase } from './db/client.js';
 import { handleError } from './errors.js';
 import { registerAttachmentRoutes } from './routes/attachments.routes.js';
+import { registerDashboardRoutes } from './routes/dashboards.routes.js';
 import { registerDatabaseRoutes } from './routes/databases.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 import { registerPageRoutes, registerTrashRoutes } from './routes/pages.routes.js';
@@ -28,6 +29,7 @@ export function buildApp({ db, dataDir, logger = false }: BuildAppOptions): Fast
   registerHealthRoutes(app, db);
   registerPageRoutes(app, db);
   registerDatabaseRoutes(app, db);
+  registerDashboardRoutes(app, db);
   const files = new AttachmentFiles(dataDir);
   registerTrashRoutes(app, db, files);
   registerAttachmentRoutes(app, db, files);

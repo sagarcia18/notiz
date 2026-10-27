@@ -67,6 +67,15 @@ export function SidebarPages(): ReactElement {
         >
           ▦
         </button>
+        <button
+          type="button"
+          className={styles.add}
+          title="New dashboard"
+          aria-label="New dashboard"
+          onClick={() => create(null, 'dashboard')}
+        >
+          ◔
+        </button>
       </div>
       {tree.data && (
         <PageTree

@@ -16,7 +16,7 @@ async function readErrorMessage(response: Response): Promise<string> {
   return parsed.success ? parsed.data.error.message : response.statusText;
 }
 
-type MutationMethod = 'POST' | 'PATCH' | 'DELETE';
+type MutationMethod = 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 async function request(url: string, init: RequestInit = {}): Promise<Response> {
   const headers: Record<string, string> = { accept: 'application/json' };

@@ -6,6 +6,15 @@ Phase 0 (architecture & scaffolding) done on branch `phase-0-scaffolding`.
 Phase 1 (page tree) done on branch `phase-1-page-tree` (branched from phase 0).
 Phase 2 (block editor) done on branch `phase-2-block-editor` (branched from phase 1).
 Phase 3 (databases) done on branch `phase-3-databases` (branched from phase 2).
+Phase 4 (dashboards) done on branch `phase-4-dashboards` (branched from phase 3).
+
+## Phase 4 - what was built
+
+- Dependencies (approved): `recharts` 3, `react-grid-layout` 2 (ships its own types) in web. Migration `0004_dashboards` (`dashboard_widgets`).
+- Shared: `dashboards.ts` - widget config/layout/data schemas, create/update/layout inputs, `GRID_COLUMNS`, `NO_VALUE_KEY`.
+- Server: `aggregation.service` (the one place numbers are computed: count/sum/avg, grouping by option or status group, view filters via `rowQuery`, `unconfigured`/`source_missing` states), `dashboards.service` + repository + routes (CRUD, bulk layout, data). Dashboards cannot have subpages; purge removes widgets. Details in `docs/ARCHITECTURE.md`.
+- Web: `features/dashboards` - lazy `DashboardView` (react-grid-layout, drag by the widget header, resize, saves only changed positions), `WidgetCard` (title, ⚙ settings popover, delete), `WidgetBody` (KPI number, bar/pie via `WidgetCharts`, state messages), `WidgetSettingsForm` (type, title, database, view filters, metric, number property, group by, status groups) with pure transitions in `widgetSettings.ts`. Sidebar: "New dashboard" button (◔); dashboards show 📊 and have no "add subpage".
+- Tests: pure aggregation, dashboards API (layout placement, guards, view filters, validation, source_missing after deletes, bulk layout, purge, no subpages), layout diff, settings transitions, `WidgetBody` (jsdom).
 
 ## Phase 3 - what was built
 
@@ -61,6 +70,11 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 - Board drop sends two requests (value, then position) without a transaction; table and board updates are not optimistic (they refetch after the server answers). Columns are reordered with Move ←/→ in the property menu, not by dragging.
 - A row restored from the trash after its database was deleted moves to the top level as a normal page; its old `properties_json` stays but is no longer shown.
 
+- Phase 4 UI not yet tested in the browser by the user (adding widgets, settings popover inside a grid item, drag/resize and saving, charts in dark mode, refresh after editing rows).
+- Dashboards: no line/time-series charts (grouping by date), no per-widget filters (only a view's filters), one database per widget, no grouping by checkbox. Widget configs are not cleaned when a property or view is deleted; the widget shows "source missing" and must be reconfigured.
+- Chart fills reuse the option colors of the pills (not a validated categorical palette; several pairs fail the CVD check). Bars are named on the axis and pie slices in the legend and tooltip, so identity never depends on color alone.
+- The grid is not responsive (fixed 12 columns; very narrow windows squeeze widgets). Layout saves are not debounced: each finished drag/resize sends one `PUT` with the changed widgets.
+
 ## Next step
 
-Phase 4 - Dashboards: `dashboard_widgets`, generic server-side aggregation service (e.g. count rows by status group), Recharts widgets on a react-grid-layout grid.
+Phase 5 (not yet defined in the repo; confirm scope with the user). Still open from the project scope: search UI and templates. Phase 6 is the MCP server.

@@ -75,3 +75,19 @@ export const dbViews = sqliteTable(
   },
   (table) => [index('db_views_database_idx').on(table.databaseId, table.sortOrder)],
 );
+
+export const dashboardWidgets = sqliteTable(
+  'dashboard_widgets',
+  {
+    id: text('id').primaryKey(),
+    dashboardId: text('dashboard_id')
+      .notNull()
+      .references(() => pages.id),
+    configJson: text('config_json').notNull(),
+    layoutJson: text('layout_json').notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
+  },
+  (table) => [index('dashboard_widgets_dashboard_idx').on(table.dashboardId)],
+);

@@ -1,8 +1,10 @@
-import type { PageTreeNode } from '@notiz/shared';
+import type { PageKind, PageTreeNode } from '@notiz/shared';
 import type { DragEvent, ReactElement } from 'react';
 import { Link } from 'react-router';
 import type { DropPosition } from './dropTarget';
 import styles from './PageTree.module.css';
+
+const defaultIcons: Record<PageKind, string> = { doc: '📄', database: '🗃️', dashboard: '📊' };
 
 export interface PageTreeHandlers {
   activeId: string | undefined;
@@ -62,9 +64,7 @@ export function PageTreeItem({ node, depth, handlers }: PageTreeItemProps): Reac
           {isExpanded ? '▾' : '▸'}
         </button>
         <Link to={`/pages/${node.id}`} className={styles.title} draggable={false}>
-          <span className={styles.icon}>
-            {node.icon ?? (node.kind === 'database' ? '🗃️' : '📄')}
-          </span>
+          <span className={styles.icon}>{node.icon ?? defaultIcons[node.kind]}</span>
           {node.title || 'Untitled'}
         </Link>
         <span className={styles.actions}>
@@ -77,7 +77,7 @@ export function PageTreeItem({ node, depth, handlers }: PageTreeItemProps): Reac
           >
             🗑
           </button>
-          {node.kind !== 'database' && (
+          {node.kind === 'doc' && (
             <button
               type="button"
               className={styles.iconButton}

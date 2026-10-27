@@ -95,8 +95,12 @@ export function getPage(db: AppDatabase, id: string): PageDetail {
 export function createPage(db: AppDatabase, input: CreatePageInput): PageDetail {
   const parentId = input.parentId ?? null;
   return db.transaction(() => {
-    if (parentId !== null && requireActivePage(db, parentId).kind === 'database') {
+    const parentKind = parentId === null ? null : requireActivePage(db, parentId).kind;
+    if (parentKind === 'database') {
       throw new ConflictError('Database rows are created through the database');
+    }
+    if (parentKind === 'dashboard') {
+      throw new ConflictError('Dashboards cannot have subpages');
     }
     const row = repo.insertPage(db, {
       id: randomUUID(),
@@ -161,6 +165,9 @@ export function movePage(db: AppDatabase, id: string, input: MovePageInput): Pag
       const parent = requireActivePage(db, input.parentId);
       if (parent.kind === 'database' && page.parentId !== parent.id) {
         throw new ConflictError('Pages cannot be moved into a database');
+      }
+      if (parent.kind === 'dashboard') {
+        throw new ConflictError('Dashboards cannot have subpages');
       }
       if (repo.isSelfOrAncestor(db, id, input.parentId)) {
         throw new ConflictError('A page cannot be moved into itself or one of its subpages');

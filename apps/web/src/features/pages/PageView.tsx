@@ -8,6 +8,10 @@ import { usePage, useUpdatePage } from './usePages';
 
 /** BlockNote is large; load it only when a page is opened. */
 const PageBody = lazy(async () => ({ default: (await import('../editor/PageBody')).PageBody }));
+/** Recharts and the grid only load for dashboards. */
+const DashboardView = lazy(async () => ({
+  default: (await import('../dashboards/DashboardView')).DashboardView,
+}));
 
 export function PageView(): ReactElement {
   const { pageId = '' } = useParams();
@@ -33,9 +37,13 @@ export function PageView(): ReactElement {
           values={page.data.properties}
         />
       )}
-      {page.data.kind === 'database' ? (
-        <DatabaseView databaseId={page.data.id} />
-      ) : (
+      {page.data.kind === 'database' && <DatabaseView databaseId={page.data.id} />}
+      {page.data.kind === 'dashboard' && (
+        <Suspense fallback={<p className={styles.muted}>Loading dashboard…</p>}>
+          <DashboardView dashboardId={page.data.id} />
+        </Suspense>
+      )}
+      {page.data.kind === 'doc' && (
         <Suspense fallback={<p className={styles.muted}>Loading editor…</p>}>
           <PageBody pageId={page.data.id} initialContent={page.data.content} />
         </Suspense>
