@@ -6,11 +6,12 @@ function element(id: string, type: string, pageId?: string): DiagramElement {
 }
 
 describe('linkTargetKindOf', () => {
-  it('links tasks to pages and data stores to databases', () => {
+  it('links tasks to pages, data stores to databases and data objects to rows', () => {
     expect(linkTargetKindOf({ type: 'bpmn:Task' })).toBe('page');
     expect(linkTargetKindOf({ type: 'bpmn:ServiceTask' })).toBe('page');
     expect(linkTargetKindOf({ type: 'bpmn:DataStoreReference' })).toBe('database');
-    expect(linkTargetKindOf({ type: 'bpmn:DataObjectReference' })).toBeNull();
+    expect(linkTargetKindOf({ type: 'bpmn:DataObjectReference' })).toBe('row');
+    expect(linkTargetKindOf({ type: 'bpmn:DataObject' })).toBeNull();
     expect(linkTargetKindOf({ type: 'bpmn:StartEvent' })).toBeNull();
   });
 });

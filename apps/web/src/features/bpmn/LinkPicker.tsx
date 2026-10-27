@@ -7,7 +7,7 @@ import { type LinkTarget, filterTargets, flattenTargets, targetLabel } from './l
 
 export interface LinkPickerProps {
   diagramId: string;
-  /** `database`: only databases are offered (for data stores). */
+  /** `database`: only databases (data stores); `row`: only database rows (data objects). */
   targetKind: LinkTargetKind;
   linkedPageId: string | null;
   onPick: (pageId: string) => void;
@@ -16,6 +16,12 @@ export interface LinkPickerProps {
 }
 
 type Tab = 'pages' | 'rows';
+
+const dialogLabel: Record<LinkTargetKind, string> = {
+  page: 'Link task to a page',
+  database: 'Link data store to a database',
+  row: 'Link data object to a database row',
+};
 
 function TargetList({
   targets,
@@ -61,7 +67,7 @@ function RowTargets(props: {
   return <ViewRowTargets {...props} viewId={viewId} />;
 }
 
-/** Chooses the page or database row a task links to, or the database of a data store. */
+/** Chooses what a task (page or row), data store (database) or data object (row) links to. */
 export function LinkPicker({
   diagramId,
   targetKind,
@@ -71,7 +77,7 @@ export function LinkPicker({
   onClose,
 }: LinkPickerProps): ReactElement {
   const tree = usePageTree();
-  const [tab, setTab] = useState<Tab>('pages');
+  const [tab, setTab] = useState<Tab>(targetKind === 'row' ? 'rows' : 'pages');
   const [query, setQuery] = useState('');
   const [databaseId, setDatabaseId] = useState('');
   const pages = flattenTargets(tree.data ?? [], diagramId);
@@ -80,13 +86,9 @@ export function LinkPicker({
   const listed = databasesOnly ? databases : pages;
 
   return (
-    <div
-      className={styles.picker}
-      role="dialog"
-      aria-label={databasesOnly ? 'Link data store to a database' : 'Link task to a page'}
-    >
+    <div className={styles.picker} role="dialog" aria-label={dialogLabel[targetKind]}>
       <div className={styles.toolbar}>
-        {!databasesOnly && (
+        {targetKind === 'page' && (
           <>
             <button
               type="button"

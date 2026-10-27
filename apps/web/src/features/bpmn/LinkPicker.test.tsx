@@ -3,6 +3,7 @@ import type { DatabaseDetail, DatabaseRow, PageTreeNode } from '@notiz/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { LinkTargetKind } from './bpmnServices';
 import { LinkPicker } from './LinkPicker';
 
 const diagramId = '00000000-0000-4000-8000-0000000000c1';
@@ -76,7 +77,7 @@ const responses: Record<string, unknown> = {
 
 function renderPicker(
   linkedPageId: string | null,
-  targetKind: 'page' | 'database' = 'page',
+  targetKind: LinkTargetKind = 'page',
 ): { onPick: () => void; onRemove: () => void } {
   const onPick = vi.fn();
   const onRemove = vi.fn();
@@ -143,5 +144,16 @@ describe('LinkPicker', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Tasks/ }));
     expect(screen.queryByRole('button', { name: /Spec/ })).toBeNull();
     expect(onPick).toHaveBeenCalledWith(databaseId);
+  });
+
+  it('offers only database rows for a data object', async () => {
+    const { onPick } = renderPicker(null, 'row');
+    screen.getByRole('dialog', { name: 'Link data object to a database row' });
+    expect(screen.queryByText('Pages')).toBeNull();
+    await screen.findByRole('option', { name: 'Tasks' });
+    expect(screen.queryByRole('button', { name: /Spec/ })).toBeNull();
+    fireEvent.change(screen.getByLabelText('Database'), { target: { value: databaseId } });
+    fireEvent.click(await screen.findByRole('button', { name: /Wire panel/ }));
+    expect(onPick).toHaveBeenCalledWith(rowId);
   });
 });

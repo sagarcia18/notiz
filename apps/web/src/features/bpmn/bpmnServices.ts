@@ -29,8 +29,8 @@ interface ElementRegistry {
   get: (id: string) => DiagramElement | undefined;
 }
 
-/** Tasks link to any page or row; data stores link to a database. */
-export type LinkTargetKind = 'page' | 'database';
+/** Tasks link to any page or row, data stores to a database, data objects to a row. */
+export type LinkTargetKind = 'page' | 'database' | 'row';
 
 export interface SelectedTask {
   elementId: string;
@@ -65,7 +65,8 @@ export function isTask(element: Pick<DiagramElement, 'type'>): boolean {
 /** What the element can link to, or null when it cannot be linked. */
 export function linkTargetKindOf(element: Pick<DiagramElement, 'type'>): LinkTargetKind | null {
   if (isTask(element)) return 'page';
-  return element.type === 'bpmn:DataStoreReference' ? 'database' : null;
+  if (element.type === 'bpmn:DataStoreReference') return 'database';
+  return element.type === 'bpmn:DataObjectReference' ? 'row' : null;
 }
 
 export function pageIdOf(element: DiagramElement): string | null {

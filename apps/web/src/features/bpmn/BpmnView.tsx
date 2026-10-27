@@ -20,9 +20,15 @@ export interface BpmnViewProps {
   initialXml: string;
 }
 
+const linkButtonText: Record<SelectedTask['targetKind'], string> = {
+  page: 'Link page…',
+  database: 'Link database…',
+  row: 'Link row…',
+};
+
 function linkButtonLabel(selected: SelectedTask): string {
   if (selected.pageId !== null) return 'Change link…';
-  return selected.targetKind === 'database' ? 'Link database…' : 'Link page…';
+  return linkButtonText[selected.targetKind];
 }
 
 /** BPMN modeler with autosave, import/export and task links. Render with `key={pageId}`. */
