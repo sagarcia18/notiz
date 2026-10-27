@@ -37,7 +37,8 @@ const namedEntities: Record<string, string> = {
   apos: "'",
 };
 
-function decodeEntities(text: string): string {
+/** Decodes the predefined XML entities and character references. */
+export function decodeXmlEntities(text: string): string {
   return text.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, (entity, code: string) => {
     if (code.startsWith('#x') || code.startsWith('#X')) {
       return String.fromCodePoint(Number.parseInt(code.slice(2), 16));
@@ -63,10 +64,10 @@ const textElementPattern = /<((?:[\w.-]+:)?(?:text|documentation))\b[^>]*>([\s\S
 export function extractBpmnText(xml: string): string {
   const parts: string[] = [];
   for (const match of xml.matchAll(nameAttributePattern)) {
-    parts.push(decodeEntities(match[1] ?? match[2] ?? ''));
+    parts.push(decodeXmlEntities(match[1] ?? match[2] ?? ''));
   }
   for (const match of xml.matchAll(textElementPattern)) {
-    parts.push(decodeEntities(stripCdata(match[2] ?? '')));
+    parts.push(decodeXmlEntities(stripCdata(match[2] ?? '')));
   }
   return parts
     .map((part) => part.trim())

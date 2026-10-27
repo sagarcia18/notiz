@@ -148,6 +148,9 @@ Files are written to disk first and the row is inserted afterwards; a failed or 
 - Every diagram save rewrites `pages_fts.body` with `extractBpmnText` (`packages/shared/src/bpmn.ts`): element `name` attributes (tasks, events, gateways, pools, lanes, flows), text annotations and documentation, entities decoded, one per line.
 - Web: `features/bpmn` - lazy `BpmnView` (bpmn-js Modeler on a light canvas, also in dark mode). Every `commandStack.changed` serializes the diagram and schedules it in the shared `useSaveQueue` hook (same debounce and flush-on-leave as the block editor). Import replaces the diagram from a `.bpmn` file and saves it; export downloads `.bpmn` or `.svg`.
 
+- **Task links:** a task (any `bpmn:*Task`) can link to a page or database row with the extension attribute `notiz:pageId` (namespace `NOTIZ_BPMN_NAMESPACE`, declared to bpmn-js as a moddle extension), so links live in the XML and survive copy/paste, undo, import and export. There is no link table: `GET /api/pages/:id/diagram-links` parses the stored XML (`extractDiagramLinks`) and resolves each link to `{ elementId, pageId, state, title, icon, status }`. `state` is `missing` for trashed, deleted or invalid targets; `status` is the option of the row's first status property (property order), else `null`. Saving never fails because of a link. Backlinks would need a table and are not built.
+- Web: the toolbar offers "Link page…" while one task is selected (`LinkPicker`: pages from the tree without the diagram itself, or rows of a chosen database's first view; "Remove link"). Links are set with `modeling.updateProperties`, so they autosave and undo like any edit. `LinkBadge`s are rendered with portals into detached hosts that bpmn-js places as overlays below the tasks; the links query is refetched after every diagram save and on window focus.
+
 `multi_select` and other Notion types are decided in Phase 7. Notion "person" properties (e.g. Assignee) have no equivalent in a single-user app and are skipped on import.
 
 ## API overview
@@ -184,6 +187,7 @@ All endpoints live under `/api`. Request/response schemas come from `packages/sh
 | PATCH  | `/api/widgets/:id`              | 4     | Update `{ config?, layout? }`                                                |
 | DELETE | `/api/widgets/:id`              | 4     | Delete widget (204)                                                          |
 | GET    | `/api/widgets/:id/data`         | 4     | Aggregated `{ state, total, buckets }`                                       |
+| GET    | `/api/pages/:id/diagram-links`  | 5     | Pages linked from a diagram's tasks, with state and row status               |
 
 `PATCH /api/pages/:id` also accepts `properties` for database rows (Phase 3). Later phases add search and templates.
 

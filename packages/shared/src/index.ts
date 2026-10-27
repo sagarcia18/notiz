@@ -10,3 +10,4 @@ export * from './propertyValues.js';
 export * from './views.js';
 export * from './dashboards.js';
 export * from './bpmn.js';
+export * from './diagramLinks.js';

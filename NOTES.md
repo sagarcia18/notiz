@@ -15,6 +15,7 @@ Phase 5 (BPMN diagrams) done on branch `phase-5-bpmn` (branched from phase 4).
 - Shared: page kind `bpmn`, `PageDetail.diagram`, `PATCH { diagram }`; `bpmn.ts` with `diagramXmlSchema` (definitions root, 5 MB), `DEFAULT_BPMN_XML`, `extractBpmnText` for search.
 - Server: new diagram pages get the default diagram; saves rewrite the `pages_fts` body in the same transaction; diagram only on `bpmn` pages, no block content on them, no subpages (409). Details in `docs/ARCHITECTURE.md`.
 - Web: `features/bpmn` - lazy `BpmnView` (toolbar: save status, Export .bpmn, Export .svg, Import .bpmn), `useBpmnModeler` (mounts the Modeler, change -> XML), `useDiagramSave`. Autosave logic moved into the shared `editor/useSaveQueue` hook, used by both the block editor and diagrams. Sidebar: "New diagram" button (⇄); diagrams show 🔀 and have no "add subpage".
+- Task links (second step): tasks link to pages or database rows via `notiz:pageId` in the XML; `GET /api/pages/:id/diagram-links` (`diagramLinks.service`) resolves them with the first status property of the row's database; `LinkPicker` (pages / database rows, remove) and `LinkBadge` overlays (status pill or title, ↗ opens the page, "Linked page missing"). Tests: link extraction, links API (status, no status, missing/trashed/purged/invalid, kind guard), `LinkPicker`, `BpmnView` badges and linking, `linkTargets`.
 - Tests: text extraction and schema, diagram API (default, save + FTS, guards, size, subpages, purge), `BpmnView` (jsdom with a fake Modeler: no save on open, autosave after edit, import, broken file), `PageView` routing to the diagram view, file names.
 
 ## Phase 4 - what was built
@@ -86,6 +87,7 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 
 - Fixed a flaky dashboards test: widgets created in the same millisecond were listed by their random id; ties now follow insertion order (`rowid`). Regression test in `dashboards.test.ts`.
 - Phase 5 UI not yet tested in the browser by the user (modeling, autosave, import/export, the light canvas inside the dark theme, keyboard shortcuts of bpmn-js).
+- Task links: no backlinks ("used in diagrams") yet - that needs a `diagram_links` table. Badges refresh after a diagram save, on focus or when the diagram is reopened, not live while a row is edited elsewhere. Only tasks can be linked (not events, gateways or subprocesses). The picker shows rows of the database's first view (its filters apply). Badge colors are fixed light colors on the light canvas.
 - Diagrams: no properties panel (names are edited on the canvas by double-click), no embedding of a diagram inside a doc page, one diagram per page. The lazy `BpmnView` chunk is ~580 kB JS + ~120 kB CSS. The server only checks the `definitions` root; a structurally broken diagram is reported when bpmn-js opens it.
 
 ## Next step
