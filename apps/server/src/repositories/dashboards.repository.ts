@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, sql } from 'drizzle-orm';
 import type { AppDatabase } from '../db/client.js';
 import { dashboardWidgets } from '../db/schema.js';
 
@@ -17,12 +17,15 @@ export interface WidgetPatch {
 }
 
 export function listWidgets(db: AppDatabase, dashboardId: string): WidgetRow[] {
-  return db
-    .select()
-    .from(dashboardWidgets)
-    .where(eq(dashboardWidgets.dashboardId, dashboardId))
-    .orderBy(asc(dashboardWidgets.createdAt), asc(dashboardWidgets.id))
-    .all();
+  return (
+    db
+      .select()
+      .from(dashboardWidgets)
+      .where(eq(dashboardWidgets.dashboardId, dashboardId))
+      // rowid breaks ties between widgets created in the same millisecond (insertion order).
+      .orderBy(asc(dashboardWidgets.createdAt), asc(sql`rowid`))
+      .all()
+  );
 }
 
 export function findWidget(db: AppDatabase, id: string): WidgetRow | undefined {

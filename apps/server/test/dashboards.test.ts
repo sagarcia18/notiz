@@ -37,6 +37,21 @@ describe('dashboards API', () => {
     expect(detail.widgets.map((widget) => widget.id)).toEqual([first.id, second.id]);
   });
 
+  // Regression: widgets created in the same millisecond were ordered by their random id.
+  it('lists widgets created in the same millisecond in creation order', async () => {
+    const dashboard = await api.createDashboard();
+    const insert = api.db.$client.prepare<[string, string]>(
+      `insert into dashboard_widgets (id, dashboard_id, config_json, layout_json, created_at)
+       values (?, ?, '{"type":"kpi"}', '{"x":0,"y":0,"w":3,"h":3}', '2026-10-27T00:00:00.000Z')`,
+    );
+    const first = 'ffffffff-ffff-4fff-bfff-ffffffffffff';
+    const second = '00000000-0000-4000-8000-000000000000';
+    insert.run(first, dashboard.id);
+    insert.run(second, dashboard.id);
+    const detail = await api.dashboard(dashboard.id);
+    expect(detail.widgets.map((widget) => widget.id)).toEqual([first, second]);
+  });
+
   it('only serves dashboards', async () => {
     const doc = await api.create('Doc');
     const response = await api.app.inject({ method: 'GET', url: `/api/dashboards/${doc.id}` });

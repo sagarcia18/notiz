@@ -129,7 +129,7 @@ Files are written to disk first and the row is inserted afterwards; a failed or 
 | `dashboard_id` | FK -> pages.id (a page of kind `dashboard`)                                                                                                                      |
 | `config_json`  | `widgetConfigSchema`: `type` (`kpi` \| `bar` \| `pie`), `title`, `databaseId`, `viewId`, `metric`, `metricPropertyId`, `groupByPropertyId`, `groupByStatusGroup` |
 | `layout_json`  | `{ x, y, w, h }` in grid units; 12 columns, `x + w <= 12`                                                                                                        |
-| `created_at`   | Widget order in the list (the grid places them by layout)                                                                                                        |
+| `created_at`   | Widget order in the list, ties by insertion (the grid uses layout)                                                                                               |
 
 ### Dashboards (Phase 4)
 

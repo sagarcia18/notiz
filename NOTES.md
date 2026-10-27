@@ -84,6 +84,7 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 - Chart fills reuse the option colors of the pills (not a validated categorical palette; several pairs fail the CVD check). Bars are named on the axis and pie slices in the legend and tooltip, so identity never depends on color alone.
 - The grid is not responsive (fixed 12 columns; very narrow windows squeeze widgets). Layout saves are not debounced: each finished drag/resize sends one `PUT` with the changed widgets.
 
+- Fixed a flaky dashboards test: widgets created in the same millisecond were listed by their random id; ties now follow insertion order (`rowid`). Regression test in `dashboards.test.ts`.
 - Phase 5 UI not yet tested in the browser by the user (modeling, autosave, import/export, the light canvas inside the dark theme, keyboard shortcuts of bpmn-js).
 - Diagrams: no properties panel (names are edited on the canvas by double-click), no embedding of a diagram inside a doc page, one diagram per page. The lazy `BpmnView` chunk is ~580 kB JS + ~120 kB CSS. The server only checks the `definitions` root; a structurally broken diagram is reported when bpmn-js opens it.
 
