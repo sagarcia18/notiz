@@ -2,6 +2,8 @@ import {
   createPropertyInputSchema,
   createRowInputSchema,
   createViewInputSchema,
+  databaseAggregateInputSchema,
+  databaseQueryInputSchema,
   pageIdSchema,
   propertyIdSchema,
   updatePropertyInputSchema,
@@ -11,6 +13,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { AppDatabase } from '../db/client.js';
+import { aggregateDatabase, queryDatabase } from '../services/databaseQuery.service.js';
 import {
   createProperty,
   deleteProperty,
@@ -63,6 +66,22 @@ export function registerDatabaseRoutes(app: FastifyInstance, db: AppDatabase): v
 
   app.get('/api/views/:id/rows', (request) =>
     listViewRows(db, viewParamsSchema.parse(request.params).id),
+  );
+
+  app.post('/api/databases/:id/query', (request) =>
+    queryDatabase(
+      db,
+      databaseParamsSchema.parse(request.params).id,
+      databaseQueryInputSchema.parse(request.body ?? {}),
+    ),
+  );
+
+  app.post('/api/databases/:id/aggregate', (request) =>
+    aggregateDatabase(
+      db,
+      databaseParamsSchema.parse(request.params).id,
+      databaseAggregateInputSchema.parse(request.body ?? {}),
+    ),
   );
 
   app.post('/api/databases/:id/rows', async (request, reply) => {
