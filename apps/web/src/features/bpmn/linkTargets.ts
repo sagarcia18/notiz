@@ -1,4 +1,4 @@
-import type { PageKind, PageTreeNode } from '@notiz/shared';
+import type { DiagramLink, PageKind, PageTreeNode } from '@notiz/shared';
 
 export interface LinkTarget {
   id: string;
@@ -35,4 +35,15 @@ export function filterTargets<T extends { title: string }>(
 
 export function targetLabel(target: { title: string }): string {
   return target.title.trim() === '' ? 'Untitled' : target.title;
+}
+
+export function rowCountLabel(count: number): string {
+  return count === 1 ? '1 row' : `${count} rows`;
+}
+
+/** Hover text: what the badge opens, plus a linked database's description. */
+export function badgeTooltip(link: DiagramLink): string {
+  const opens = `Open ${targetLabel(link)}`;
+  const description = link.description?.trim() ?? '';
+  return description === '' ? opens : `${opens}\n${description}`;
 }

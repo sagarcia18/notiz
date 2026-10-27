@@ -3,18 +3,7 @@ import type { ReactElement } from 'react';
 import { Link } from 'react-router';
 import { OptionPill } from '../databases/OptionPill';
 import styles from './Bpmn.module.css';
-import { targetLabel } from './linkTargets';
-
-export function rowCountLabel(count: number): string {
-  return count === 1 ? '1 row' : `${count} rows`;
-}
-
-/** Hover text: what the badge opens, plus a linked database's description. */
-export function badgeTooltip(link: DiagramLink): string {
-  const opens = `Open ${targetLabel(link)}`;
-  const description = link.description?.trim() ?? '';
-  return description === '' ? opens : `${opens}\n${description}`;
-}
+import { badgeTooltip, rowCountLabel, targetLabel } from './linkTargets';
 
 function BadgeContent({ link }: { link: DiagramLink }): ReactElement {
   if (link.status) return <OptionPill option={link.status} />;
