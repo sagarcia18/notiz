@@ -9,11 +9,16 @@ import { PageView } from './PageView';
 
 // BlockNote needs a real browser; the body is not part of this test.
 vi.mock('../editor/PageBody', () => ({ PageBody: () => <p>editor</p> }));
+// bpmn-js needs a real browser too; only the routing to the diagram view is tested here.
+vi.mock('../bpmn/BpmnView', () => ({
+  BpmnView: ({ initialXml }: { initialXml: string }) => <p>diagram: {initialXml}</p>,
+}));
 
 const databaseId = '00000000-0000-4000-8000-000000000001';
 const rowId = '00000000-0000-4000-8000-000000000002';
 const titleId = '00000000-0000-4000-8000-000000000003';
 const viewId = '00000000-0000-4000-8000-000000000004';
+const diagramId = '00000000-0000-4000-8000-000000000005';
 
 function page(id: string, title: string, extra: Partial<PageDetail>): PageDetail {
   return {
@@ -28,6 +33,7 @@ function page(id: string, title: string, extra: Partial<PageDetail>): PageDetail
     content: [],
     databaseId: null,
     properties: {},
+    diagram: null,
     ...extra,
   };
 }
@@ -64,6 +70,10 @@ const responses: Record<string, unknown> = {
   [`/api/pages/${rowId}`]: page(rowId, 'Row one', { parentId: databaseId, databaseId }),
   [`/api/databases/${databaseId}`]: database,
   [`/api/views/${viewId}/rows`]: [row],
+  [`/api/pages/${diagramId}`]: page(diagramId, 'Process', {
+    kind: 'bpmn',
+    diagram: '<definitions/>',
+  }),
 };
 
 function fakeFetch(input: RequestInfo | URL): Promise<Response> {
@@ -118,5 +128,11 @@ describe('PageView', () => {
       await screen.findByRole('link', { name: 'Open' });
       expect(headerTitles()).toEqual(['Test database']);
     }
+  });
+
+  it('shows the diagram view instead of the editor for diagram pages', async () => {
+    renderAt(`/pages/${diagramId}`);
+    await screen.findByText('diagram: <definitions/>');
+    expect(screen.queryByText('editor')).toBeNull();
   });
 });

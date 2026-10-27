@@ -6,7 +6,7 @@ export const pages = sqliteTable(
   {
     id: text('id').primaryKey(),
     parentId: text('parent_id').references((): AnySQLiteColumn => pages.id),
-    kind: text('kind', { enum: ['doc', 'database', 'dashboard'] })
+    kind: text('kind', { enum: ['doc', 'database', 'dashboard', 'bpmn'] })
       .notNull()
       .default('doc'),
     title: text('title').notNull().default(''),
@@ -14,6 +14,7 @@ export const pages = sqliteTable(
     sortOrder: text('sort_order').notNull(),
     contentJson: text('content_json'),
     propertiesJson: text('properties_json'),
+    diagramXml: text('diagram_xml'),
     isTemplate: integer('is_template', { mode: 'boolean' }).notNull().default(false),
     createdAt: text('created_at')
       .notNull()

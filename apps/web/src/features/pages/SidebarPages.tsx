@@ -76,6 +76,15 @@ export function SidebarPages(): ReactElement {
         >
           ◔
         </button>
+        <button
+          type="button"
+          className={styles.add}
+          title="New diagram"
+          aria-label="New diagram"
+          onClick={() => create(null, 'bpmn')}
+        >
+          ⇄
+        </button>
       </div>
       {tree.data && (
         <PageTree

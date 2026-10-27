@@ -16,6 +16,7 @@
     "@mantine/hooks": "^9.7.3",
     "@notiz/shared": "workspace:*",
     "@tanstack/react-query": "^5.104.5",
+    "bpmn-js": "^18.31.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-grid-layout": "^2.3.0",

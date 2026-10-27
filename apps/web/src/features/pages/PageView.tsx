@@ -12,6 +12,8 @@ const PageBody = lazy(async () => ({ default: (await import('../editor/PageBody'
 const DashboardView = lazy(async () => ({
   default: (await import('../dashboards/DashboardView')).DashboardView,
 }));
+/** bpmn-js only loads for diagram pages. */
+const BpmnView = lazy(async () => ({ default: (await import('../bpmn/BpmnView')).BpmnView }));
 
 export function PageView(): ReactElement {
   const { pageId = '' } = useParams();
@@ -41,6 +43,11 @@ export function PageView(): ReactElement {
       {page.data.kind === 'dashboard' && (
         <Suspense fallback={<p className={styles.muted}>Loading dashboard…</p>}>
           <DashboardView dashboardId={page.data.id} />
+        </Suspense>
+      )}
+      {page.data.kind === 'bpmn' && page.data.diagram !== null && (
+        <Suspense fallback={<p className={styles.muted}>Loading diagram…</p>}>
+          <BpmnView pageId={page.data.id} title={page.data.title} initialXml={page.data.diagram} />
         </Suspense>
       )}
       {page.data.kind === 'doc' && (

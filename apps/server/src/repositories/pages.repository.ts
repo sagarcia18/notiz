@@ -11,6 +11,7 @@ export interface NewPageRow {
   kind: PageKind;
   title: string;
   sortOrder: string;
+  diagramXml?: string;
 }
 
 export interface PagePatch {
@@ -20,6 +21,7 @@ export interface PagePatch {
   sortOrder?: string;
   contentJson?: string;
   propertiesJson?: string;
+  diagramXml?: string;
 }
 
 const now = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;

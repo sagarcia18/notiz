@@ -11,6 +11,7 @@ Personal, single-user, local-first Notion replacement. Runs on Windows; all data
 | Web      | React 19, Vite, React Router, TanStack Query, CSS Modules              | CSS Modules: no extra dependency, scoped styles next to components. |
 | Editor   | BlockNote (Phase 2)                                                    | Notion-like block editing out of the box.                           |
 | Charts   | Recharts, react-grid-layout (Phase 4)                                  | Declarative charts; draggable dashboard grid.                       |
+| Diagrams | bpmn-js (Phase 5)                                                      | The bpmn.io BPMN 2.0 modeler; its bpmn.io logo must stay visible.   |
 | Server   | Fastify 5, better-sqlite3, Drizzle ORM + drizzle-kit migrations, Zod 4 | Synchronous SQLite is fast and simple for a single user.            |
 | Search   | SQLite FTS5                                                            | Built into SQLite; no extra service.                                |
 | Claude   | MCP server (`packages/mcp`, Phase 6) calling the REST API              | The API stays the only way to change data.                          |
@@ -55,11 +56,12 @@ All IDs are UUID strings. Timestamps are ISO-8601 UTC text. JSON columns hold te
 | ---------------------------------------- | ----------------------------------------------------------------- |
 | `id`                                     | PK                                                                |
 | `parent_id`                              | FK -> pages.id, null for root pages                               |
-| `kind`                                   | `doc` \| `database` \| `dashboard`                                |
+| `kind`                                   | `doc` \| `database` \| `dashboard` \| `bpmn`                      |
 | `title`, `icon`                          |                                                                   |
 | `sort_order`                             | Fractional index key (text); reorder without renumbering siblings |
 | `content_json`                           | BlockNote document                                                |
 | `properties_json`                        | Values when the page is a database row, keyed by property id      |
+| `diagram_xml`                            | BPMN 2.0 XML of a `bpmn` page (Phase 5), null for other kinds     |
 | `is_template`                            | Boolean                                                           |
 | `created_at`, `updated_at`, `deleted_at` | `deleted_at` set = in trash (soft delete)                         |
 
@@ -138,6 +140,14 @@ Files are written to disk first and the row is inserted afterwards; a failed or 
 - Deleting a dashboard forever also deletes its widgets.
 - Web: the widget data query key starts with `['databases', databaseId]`, so every database mutation refreshes the widgets that read from it. `DashboardView` is lazy-loaded (Recharts + react-grid-layout); the grid uses `absoluteStrategy` (no CSS transforms) so the fixed-position settings popover is not displaced, and only changed positions are saved (`PUT /layout`).
 
+### BPMN diagrams (Phase 5)
+
+- A diagram is a page of kind `bpmn`. Its BPMN 2.0 XML lives in `pages.diagram_xml` (migration `0005_bpmn`), not in `content_json` (that stays the BlockNote document) and not as an attachment file: the XML is page content that is edited and searched, and keeping it in the row lets a save and its `pages_fts` update share one transaction (trash and purge need nothing extra).
+- New `bpmn` pages start with `DEFAULT_BPMN_XML` (one start event). `PageDetail.diagram` is the XML for diagram pages and `null` otherwise.
+- `PATCH /api/pages/:id { diagram }` replaces the whole diagram. It is accepted only for `bpmn` pages, must contain a `definitions` root element and is at most 5 MB (`diagramXmlSchema`); full XML validation is left to bpmn-js. Diagram pages reject `content` and, like dashboards, cannot have subpages (409).
+- Every diagram save rewrites `pages_fts.body` with `extractBpmnText` (`packages/shared/src/bpmn.ts`): element `name` attributes (tasks, events, gateways, pools, lanes, flows), text annotations and documentation, entities decoded, one per line.
+- Web: `features/bpmn` - lazy `BpmnView` (bpmn-js Modeler on a light canvas, also in dark mode). Every `commandStack.changed` serializes the diagram and schedules it in the shared `useSaveQueue` hook (same debounce and flush-on-leave as the block editor). Import replaces the diagram from a `.bpmn` file and saves it; export downloads `.bpmn` or `.svg`.
+
 `multi_select` and other Notion types are decided in Phase 7. Notion "person" properties (e.g. Assignee) have no equivalent in a single-user app and are skipped on import.
 
 ## API overview
@@ -150,7 +160,7 @@ All endpoints live under `/api`. Request/response schemas come from `packages/sh
 | GET    | `/api/pages/tree`               | 1     | Nested tree of active, non-template pages                                    |
 | POST   | `/api/pages`                    | 1     | Create `{ parentId?, title?, kind? }` as last child (201)                    |
 | GET    | `/api/pages/:id`                | 1     | Page detail                                                                  |
-| PATCH  | `/api/pages/:id`                | 1, 2  | Update `{ title?, icon?, content? }`                                         |
+| PATCH  | `/api/pages/:id`                | 1-5   | Update `{ title?, icon?, content?, diagram? }`                               |
 | POST   | `/api/pages/:id/move`           | 1     | Move `{ parentId, beforeId? \| afterId? }`; 409 on cycles or foreign anchors |
 | DELETE | `/api/pages/:id`                | 1     | Move page + subtree to trash (204)                                           |
 | GET    | `/api/trash`                    | 1     | Trash roots, newest first                                                    |

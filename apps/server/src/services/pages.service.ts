@@ -1,13 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import {
   type CreatePageInput,
+  DEFAULT_BPMN_XML,
   type MovePageInput,
   type PageContent,
   type PageDetail,
+  type PageKind,
   type PageSummary,
   type PageTreeNode,
   type PropertyValues,
   type UpdatePageInput,
+  extractBpmnText,
   extractPlainText,
   pageContentSchema,
   sortKeyBetween,
@@ -50,6 +53,7 @@ function toDetail(db: AppDatabase, row: PageRow): PageDetail {
     content: parseContent(row.contentJson),
     databaseId,
     properties: databaseId === null ? {} : parseValues(row.propertiesJson),
+    diagram: row.kind === 'bpmn' ? (row.diagramXml ?? DEFAULT_BPMN_XML) : null,
   };
 }
 
@@ -99,15 +103,15 @@ export function createPage(db: AppDatabase, input: CreatePageInput): PageDetail 
     if (parentKind === 'database') {
       throw new ConflictError('Database rows are created through the database');
     }
-    if (parentKind === 'dashboard') {
-      throw new ConflictError('Dashboards cannot have subpages');
-    }
+    assertCanHaveSubpages(parentKind);
+    const kind = input.kind ?? 'doc';
     const row = repo.insertPage(db, {
       id: randomUUID(),
       parentId,
-      kind: input.kind ?? 'doc',
+      kind,
       title: input.title ?? '',
       sortOrder: sortKeyBetween(lastChildKey(db, parentId), null),
+      diagramXml: kind === 'bpmn' ? DEFAULT_BPMN_XML : undefined,
     });
     repo.insertSearchEntry(db, row.id, row.title);
     if (row.kind === 'database') {
@@ -120,19 +124,48 @@ export function createPage(db: AppDatabase, input: CreatePageInput): PageDetail 
 export function updatePage(db: AppDatabase, id: string, input: UpdatePageInput): PageDetail {
   return db.transaction(() => {
     const current = requireActivePage(db, id);
-    const { content, properties, ...fields } = input;
+    const { content, properties, diagram, ...fields } = input;
+    assertFitsKind(current, input);
     const contentJson = content === undefined ? undefined : JSON.stringify(content);
     const propertiesJson =
       properties === undefined ? undefined : rowValuesJson(db, current, properties);
-    const row = repo.updatePage(db, id, { ...fields, contentJson, propertiesJson });
+    const row = repo.updatePage(db, id, {
+      ...fields,
+      contentJson,
+      propertiesJson,
+      diagramXml: diagram,
+    });
     if (input.title !== undefined) {
       repo.updateSearchTitle(db, id, input.title);
     }
     if (content !== undefined) {
       repo.updateSearchBody(db, id, extractPlainText(content));
     }
+    if (diagram !== undefined) {
+      repo.updateSearchBody(db, id, extractBpmnText(diagram));
+    }
     return toDetail(db, row);
   });
+}
+
+/** Dashboards and diagrams hold widgets or a canvas instead of subpages. */
+function assertCanHaveSubpages(parentKind: PageKind | null): void {
+  if (parentKind === 'dashboard') {
+    throw new ConflictError('Dashboards cannot have subpages');
+  }
+  if (parentKind === 'bpmn') {
+    throw new ConflictError('Diagrams cannot have subpages');
+  }
+}
+
+/** A diagram page has no block content, and only diagram pages take a diagram. */
+function assertFitsKind(row: PageRow, input: UpdatePageInput): void {
+  if (input.diagram !== undefined && row.kind !== 'bpmn') {
+    throw new ValidationError('Only diagram pages have a diagram');
+  }
+  if (input.content !== undefined && row.kind === 'bpmn') {
+    throw new ValidationError('Diagram pages have no block content');
+  }
 }
 
 function rowValuesJson(db: AppDatabase, row: PageRow, values: PropertyValues): string {
@@ -166,9 +199,7 @@ export function movePage(db: AppDatabase, id: string, input: MovePageInput): Pag
       if (parent.kind === 'database' && page.parentId !== parent.id) {
         throw new ConflictError('Pages cannot be moved into a database');
       }
-      if (parent.kind === 'dashboard') {
-        throw new ConflictError('Dashboards cannot have subpages');
-      }
+      assertCanHaveSubpages(parent.kind);
       if (repo.isSelfOrAncestor(db, id, input.parentId)) {
         throw new ConflictError('A page cannot be moved into itself or one of its subpages');
       }

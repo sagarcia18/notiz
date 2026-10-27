@@ -1,5 +1,12 @@
 export type SaveStatus = 'saved' | 'pending' | 'saving' | 'error';
 
+export const saveStatusLabel: Record<SaveStatus, string> = {
+  saved: 'Saved',
+  pending: 'Unsaved changes',
+  saving: 'Saving…',
+  error: 'Could not save; retrying on the next change',
+};
+
 export interface SaveQueueOptions<T> {
   save: (value: T) => Promise<void>;
   delayMs: number;

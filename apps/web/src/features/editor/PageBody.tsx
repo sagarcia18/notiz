@@ -2,15 +2,8 @@ import type { PageContent } from '@notiz/shared';
 import type { ReactElement } from 'react';
 import { PageEditor } from './PageEditor';
 import styles from './PageEditor.module.css';
-import type { SaveStatus } from './saveQueue';
+import { saveStatusLabel } from './saveQueue';
 import { usePageContent } from './usePageContent';
-
-const statusLabel: Record<SaveStatus, string> = {
-  saved: 'Saved',
-  pending: 'Unsaved changes',
-  saving: 'Saving…',
-  error: 'Could not save; retrying on the next change',
-};
 
 export interface PageBodyProps {
   pageId: string;
@@ -23,7 +16,7 @@ export function PageBody({ pageId, initialContent }: PageBodyProps): ReactElemen
   return (
     <>
       <p className={content.status === 'error' ? styles.statusError : styles.status} role="status">
-        {statusLabel[content.status]}
+        {saveStatusLabel[content.status]}
       </p>
       <PageEditor
         initialContent={initialContent}

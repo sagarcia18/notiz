@@ -7,6 +7,15 @@ Phase 1 (page tree) done on branch `phase-1-page-tree` (branched from phase 0).
 Phase 2 (block editor) done on branch `phase-2-block-editor` (branched from phase 1).
 Phase 3 (databases) done on branch `phase-3-databases` (branched from phase 2).
 Phase 4 (dashboards) done on branch `phase-4-dashboards` (branched from phase 3).
+Phase 5 (BPMN diagrams) done on branch `phase-5-bpmn` (branched from phase 4).
+
+## Phase 5 - what was built
+
+- Dependency (approved): `bpmn-js` 18 (web, ships its own types). Migration `0005_bpmn` (`pages.diagram_xml`).
+- Shared: page kind `bpmn`, `PageDetail.diagram`, `PATCH { diagram }`; `bpmn.ts` with `diagramXmlSchema` (definitions root, 5 MB), `DEFAULT_BPMN_XML`, `extractBpmnText` for search.
+- Server: new diagram pages get the default diagram; saves rewrite the `pages_fts` body in the same transaction; diagram only on `bpmn` pages, no block content on them, no subpages (409). Details in `docs/ARCHITECTURE.md`.
+- Web: `features/bpmn` - lazy `BpmnView` (toolbar: save status, Export .bpmn, Export .svg, Import .bpmn), `useBpmnModeler` (mounts the Modeler, change -> XML), `useDiagramSave`. Autosave logic moved into the shared `editor/useSaveQueue` hook, used by both the block editor and diagrams. Sidebar: "New diagram" button (⇄); diagrams show 🔀 and have no "add subpage".
+- Tests: text extraction and schema, diagram API (default, save + FTS, guards, size, subpages, purge), `BpmnView` (jsdom with a fake Modeler: no save on open, autosave after edit, import, broken file), `PageView` routing to the diagram view, file names.
 
 ## Phase 4 - what was built
 
@@ -75,6 +84,9 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 - Chart fills reuse the option colors of the pills (not a validated categorical palette; several pairs fail the CVD check). Bars are named on the axis and pie slices in the legend and tooltip, so identity never depends on color alone.
 - The grid is not responsive (fixed 12 columns; very narrow windows squeeze widgets). Layout saves are not debounced: each finished drag/resize sends one `PUT` with the changed widgets.
 
+- Phase 5 UI not yet tested in the browser by the user (modeling, autosave, import/export, the light canvas inside the dark theme, keyboard shortcuts of bpmn-js).
+- Diagrams: no properties panel (names are edited on the canvas by double-click), no embedding of a diagram inside a doc page, one diagram per page. The lazy `BpmnView` chunk is ~580 kB JS + ~120 kB CSS. The server only checks the `definitions` root; a structurally broken diagram is reported when bpmn-js opens it.
+
 ## Next step
 
-Phase 5 (not yet defined in the repo; confirm scope with the user). Still open from the project scope: search UI and templates. Phase 6 is the MCP server.
+Still open from the project scope: search UI and templates. Phase 6 is the MCP server (it can read and write `diagram` through the existing page API).

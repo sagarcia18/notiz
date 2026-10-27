@@ -1,11 +1,10 @@
 import { type PageContent, attachmentSchema, pageDetailSchema } from '@notiz/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { sendJson, uploadFile } from '../../lib/apiClient';
 import { pageKeys } from '../pages/usePages';
-import { SaveQueue, type SaveStatus } from './saveQueue';
-
-const SAVE_DELAY_MS = 800;
+import type { SaveStatus } from './saveQueue';
+import { useSaveQueue } from './useSaveQueue';
 
 export interface PageContentSaver {
   status: SaveStatus;
@@ -18,39 +17,10 @@ export interface PageContentSaver {
 /** Autosaves the editor document of one page; pending changes are flushed on leave. */
 export function usePageContent(pageId: string): PageContentSaver {
   const queryClient = useQueryClient();
-  const [status, setStatus] = useState<SaveStatus>('saved');
-  const [queue] = useState(
-    () =>
-      new SaveQueue<PageContent>({
-        delayMs: SAVE_DELAY_MS,
-        onStatus: setStatus,
-        save: async (content) => {
-          const page = await sendJson(
-            'PATCH',
-            `/api/pages/${pageId}`,
-            { content },
-            pageDetailSchema,
-          );
-          queryClient.setQueryData(pageKeys.detail(pageId), page);
-        },
-      }),
-  );
-
-  useEffect(() => {
-    const warnIfUnsaved = (event: BeforeUnloadEvent): void => {
-      if (queue.hasPending()) {
-        void queue.flush();
-        event.preventDefault();
-      }
-    };
-    window.addEventListener('beforeunload', warnIfUnsaved);
-    return () => {
-      window.removeEventListener('beforeunload', warnIfUnsaved);
-      void queue.flush();
-    };
-  }, [queue]);
-
-  const save = useCallback((content: PageContent) => queue.schedule(content), [queue]);
+  const { status, schedule } = useSaveQueue<PageContent>(async (content) => {
+    const page = await sendJson('PATCH', `/api/pages/${pageId}`, { content }, pageDetailSchema);
+    queryClient.setQueryData(pageKeys.detail(pageId), page);
+  });
 
   const upload = useCallback(
     async (file: File) => {
@@ -64,5 +34,5 @@ export function usePageContent(pageId: string): PageContentSaver {
     [pageId],
   );
 
-  return { status, save, upload };
+  return { status, save: schedule, upload };
 }

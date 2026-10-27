@@ -1,0 +1,1 @@
+ALTER TABLE `pages` ADD `diagram_xml` text;

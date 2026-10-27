@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { diagramXmlSchema } from './bpmn.js';
 import { pageContentSchema } from './content.js';
 import { propertyValuesSchema } from './propertyValueSchema.js';
 
-export const pageKindSchema = z.enum(['doc', 'database', 'dashboard']);
+export const pageKindSchema = z.enum(['doc', 'database', 'dashboard', 'bpmn']);
 
 export type PageKind = z.infer<typeof pageKindSchema>;
 
@@ -36,6 +37,8 @@ export const pageDetailSchema = pageSummarySchema.extend({
   /** Set when the page is a row of a database page. */
   databaseId: pageIdSchema.nullable(),
   properties: propertyValuesSchema,
+  /** BPMN XML of a `bpmn` page; null for other kinds. */
+  diagram: z.string().nullable(),
 });
 
 export type PageDetail = z.infer<typeof pageDetailSchema>;
@@ -58,6 +61,8 @@ export const updatePageInputSchema = z
     content: pageContentSchema.optional(),
     /** Database rows only: merged into the stored values; `null` clears one. */
     properties: propertyValuesSchema.optional(),
+    /** `bpmn` pages only: the whole diagram as BPMN 2.0 XML. */
+    diagram: diagramXmlSchema.optional(),
   })
   .refine((input) => Object.values(input).some((value) => value !== undefined), {
     message: 'Nothing to update',

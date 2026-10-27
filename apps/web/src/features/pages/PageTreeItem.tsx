@@ -4,7 +4,12 @@ import { Link } from 'react-router';
 import type { DropPosition } from './dropTarget';
 import styles from './PageTree.module.css';
 
-const defaultIcons: Record<PageKind, string> = { doc: '📄', database: '🗃️', dashboard: '📊' };
+const defaultIcons: Record<PageKind, string> = {
+  doc: '📄',
+  database: '🗃️',
+  dashboard: '📊',
+  bpmn: '🔀',
+};
 
 export interface PageTreeHandlers {
   activeId: string | undefined;
