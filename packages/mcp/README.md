@@ -47,6 +47,8 @@ The server reads `NOTIZ_API_URL`, else `API_PORT` from the repo `.env` (default 
 | `create_database_row`   | Add a row with values keyed by property id                          |
 | `update_database_row`   | Merge values into a row                                             |
 | `add_database_property` | Add a property (text, number, select, status, date, checkbox, url)  |
+| `query_database`        | Ad-hoc filter/sort/page by property and option names                |
+| `aggregate_database`    | Count, sum or average, optionally grouped by select/status          |
 | `get_diagram_links`     | Diagram elements linked to pages/rows/databases, resolved           |
 | `get_diagram_usages`    | Diagrams that link to a page                                        |
 

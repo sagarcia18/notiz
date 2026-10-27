@@ -203,6 +203,8 @@ All endpoints live under `/api`. Request/response schemas come from `packages/sh
 | GET    | `/api/pages/:id/diagram-links`  | 5     | Pages linked from a diagram's tasks, with state and row status               |
 | GET    | `/api/pages/:id/diagram-usages` | 5     | Active diagrams that link to the page (backlinks)                            |
 | GET    | `/api/search?q=&limit=`         | 6     | Full-text search, best rank first (limit 1-50, default 20)                   |
+| POST   | `/api/databases/:id/query`      | 6     | Ad-hoc `{ filters?, sorts?, limit?, offset? }` -> `{ total, rows }`          |
+| POST   | `/api/databases/:id/aggregate`  | 6     | `{ filters?, metric?, metricPropertyId?, groupByPropertyId?, ... }` -> total |
 
 `PATCH /api/pages/:id` also accepts `properties` for database rows (Phase 3). Templates come later.
 
@@ -210,11 +212,15 @@ All endpoints live under `/api`. Request/response schemas come from `packages/sh
 
 `search.service` turns the text into an FTS5 query with `toFtsQuery` (shared): every word is quoted and prefix-matched (`"word"*`, implicit AND), so user input never becomes FTS syntax. `search.repository` joins `pages_fts` with `pages`, drops trashed pages and templates, orders by `rank` and returns an FTS `snippet`. Database rows are included and carry `databaseId`. The searched text is what the page service already writes to `pages_fts`: titles, document text, diagram labels and database descriptions (not row property values).
 
+### Database queries (Phase 6)
+
+`databaseQuery.service` answers ad-hoc questions without a saved view. It reuses `filterRows` / `sortRows` (the view engine) and `aggregateRows` (the dashboard aggregation, called with a `kpi`/`bar` widget config), so results match the UI. Unlike views, which skip filters on deleted properties, a query rejects unknown properties, operators that do not fit the property type, missing values and unfit metric/group properties with `validation_failed`. Filters are ANDed (no OR or nesting); `total` counts matches before `limit` (1-500, default 100) / `offset`.
+
 ## MCP server (Phase 6)
 
 `packages/mcp` is a stdio MCP server (`@modelcontextprotocol/sdk`) started by Claude Desktop / Claude Code (`pnpm --filter @notiz/mcp start`, setup in `packages/mcp/README.md`). It never opens the SQLite file: every tool calls the REST API through `NotizApi` (`fetch` + shared Zod schemas), so routes -> services -> repositories stay the only data path and the Notiz server must be running. The address is `NOTIZ_API_URL`, else `http://127.0.0.1:$API_PORT` (default 3001).
 
-- Tools: `list_page_tree`, `get_page`, `search_pages`, `create_page`, `update_page`, `move_page`, `trash_page` (`tools/pages.tools.ts`); `get_database`, `list_database_rows`, `create_database_row`, `update_database_row`, `add_database_property` (`tools/databases.tools.ts`); `get_diagram_links`, `get_diagram_usages` (`tools/diagrams.tools.ts`).
+- Tools: `list_page_tree`, `get_page`, `search_pages`, `create_page`, `update_page`, `move_page`, `trash_page` (`tools/pages.tools.ts`); `get_database`, `list_database_rows`, `create_database_row`, `update_database_row`, `add_database_property` (`tools/databases.tools.ts`); `query_database`, `aggregate_database` (`tools/query.tools.ts`: properties and options by name, resolved to ids in `queryNames.ts` with errors that list the valid names; rows come back keyed by property name with option names); `get_diagram_links`, `get_diagram_usages` (`tools/diagrams.tools.ts`).
 - Documents: `get_page` adds a plain-text `text` next to the BlockNote `content`; `create_page` / `update_page` accept either `content` (BlockNote blocks) or `text`, which `textToBlocks` turns into headings, list, checklist and paragraph blocks. Both replace the whole document.
 - Diagrams are read and written as XML through `update_page { diagram }`; links are `notiz:pageId` attributes in that XML, resolved by the diagram-links endpoints.
 - API error answers become tool results with `isError` and the text `code: message`; an unreachable server is reported as `unreachable`. Invalid arguments are rejected by the SDK from the tool's Zod schema.

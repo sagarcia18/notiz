@@ -29,6 +29,7 @@ describe('page tools', () => {
     const { tools } = await mcp.client.listTools();
     expect(tools.map((tool) => tool.name).sort()).toEqual([
       'add_database_property',
+      'aggregate_database',
       'create_database_row',
       'create_page',
       'get_database',
@@ -38,6 +39,7 @@ describe('page tools', () => {
       'list_database_rows',
       'list_page_tree',
       'move_page',
+      'query_database',
       'search_pages',
       'trash_page',
       'update_database_row',
