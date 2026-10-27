@@ -11,6 +11,9 @@ export function useDiagramSave(pageId: string): AutosaveState<string> {
   return useSaveQueue<string>(async (diagram) => {
     const page = await sendJson('PATCH', `/api/pages/${pageId}`, { diagram }, pageDetailSchema);
     queryClient.setQueryData(pageKeys.detail(pageId), page);
-    await queryClient.invalidateQueries({ queryKey: diagramKeys.links(pageId) });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: diagramKeys.links(pageId) }),
+      queryClient.invalidateQueries({ queryKey: diagramKeys.allUsages }),
+    ]);
   });
 }

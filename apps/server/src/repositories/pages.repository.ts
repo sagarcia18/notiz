@@ -136,6 +136,7 @@ function purgeWhere(db: AppDatabase, prefix: SQL, idsQuery: SQL): string[] {
   db.run(sql`${prefix} delete from db_properties where database_id in (${idsQuery})`);
   db.run(sql`${prefix} delete from db_views where database_id in (${idsQuery})`);
   db.run(sql`${prefix} delete from dashboard_widgets where dashboard_id in (${idsQuery})`);
+  db.run(sql`${prefix} delete from diagram_links where diagram_id in (${idsQuery})`);
   db.run(sql`${prefix} delete from pages where id in (${idsQuery})`);
   return ids;
 }

@@ -3,12 +3,14 @@ import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 import { openDatabase } from './db/client.js';
 import { runMigrations } from './db/migrate.js';
+import { rebuildDiagramLinks } from './services/diagramLinks.service.js';
 
 const config = loadConfig();
 fs.mkdirSync(config.attachmentsDir, { recursive: true });
 
 const db = openDatabase(config.databaseFile);
 runMigrations(db);
+rebuildDiagramLinks(db);
 
 const app = buildApp({ db, dataDir: config.dataDir, logger: true });
 

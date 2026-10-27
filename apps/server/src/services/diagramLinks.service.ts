@@ -1,6 +1,7 @@
 import {
   type DiagramLink,
   type DiagramLinkRef,
+  type DiagramUsage,
   type PropertyOption,
   extractDiagramLinks,
   pageIdSchema,
@@ -8,6 +9,7 @@ import {
 import type { AppDatabase } from '../db/client.js';
 import { ValidationError } from '../errors.js';
 import * as databasesRepo from '../repositories/databases.repository.js';
+import * as linksRepo from '../repositories/diagramLinks.repository.js';
 import * as pagesRepo from '../repositories/pages.repository.js';
 import type { PageRow } from '../repositories/pages.repository.js';
 import { parseOptions, parseValues } from './databaseJson.js';
@@ -74,4 +76,19 @@ export function listDiagramLinks(db: AppDatabase, diagramId: string): DiagramLin
   }
   const lookup = statusLookup(db);
   return extractDiagramLinks(page.diagramXml ?? '').map((link) => resolveLink(db, link, lookup));
+}
+
+/** Active diagrams that link to the page. */
+export function listDiagramUsages(db: AppDatabase, pageId: string): DiagramUsage[] {
+  requireActivePage(db, pageId);
+  return linksRepo.listDiagramUsages(db, pageId);
+}
+
+/** Rebuilds the link table from every stored diagram; idempotent, run on server start. */
+export function rebuildDiagramLinks(db: AppDatabase): void {
+  db.transaction(() => {
+    for (const source of linksRepo.listDiagramSources(db)) {
+      linksRepo.replaceDiagramLinks(db, source.id, extractDiagramLinks(source.diagramXml ?? ''));
+    }
+  });
 }

@@ -42,3 +42,14 @@ export const diagramLinkSchema = z.object({
 export type DiagramLink = z.infer<typeof diagramLinkSchema>;
 
 export const diagramLinkListSchema = z.array(diagramLinkSchema);
+
+/** A diagram that links to a page ("used in diagrams"). */
+export const diagramUsageSchema = z.object({
+  diagramId: z.string(),
+  title: z.string(),
+  icon: z.string().nullable(),
+});
+
+export type DiagramUsage = z.infer<typeof diagramUsageSchema>;
+
+export const diagramUsageListSchema = z.array(diagramUsageSchema);

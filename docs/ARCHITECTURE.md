@@ -131,6 +131,16 @@ Files are written to disk first and the row is inserted afterwards; a failed or 
 | `layout_json`  | `{ x, y, w, h }` in grid units; 12 columns, `x + w <= 12`                                                                                                        |
 | `created_at`   | Widget order in the list, ties by insertion (the grid uses layout)                                                                                               |
 
+### diagram_links (Phase 5, migration `0006_diagram_links`)
+
+Derived index of the `notiz:pageId` attributes in `pages.diagram_xml`; the XML stays the source of truth.
+
+| Column       | Notes                                                                        |
+| ------------ | ---------------------------------------------------------------------------- |
+| `diagram_id` | FK -> pages.id (a page of kind `bpmn`), indexed                              |
+| `element_id` | BPMN element id of the linked task                                           |
+| `page_id`    | Linked page id, indexed; no FK (may point to a purged page or an invalid id) |
+
 ### Dashboards (Phase 4)
 
 - A dashboard is a page of kind `dashboard` with widgets instead of content. Like databases, it cannot have subpages (create and move answer 409).
@@ -148,7 +158,8 @@ Files are written to disk first and the row is inserted afterwards; a failed or 
 - Every diagram save rewrites `pages_fts.body` with `extractBpmnText` (`packages/shared/src/bpmn.ts`): element `name` attributes (tasks, events, gateways, pools, lanes, flows), text annotations and documentation, entities decoded, one per line.
 - Web: `features/bpmn` - lazy `BpmnView` (bpmn-js Modeler on a light canvas, also in dark mode). Every `commandStack.changed` serializes the diagram and schedules it in the shared `useSaveQueue` hook (same debounce and flush-on-leave as the block editor). Import replaces the diagram from a `.bpmn` file and saves it; export downloads `.bpmn` or `.svg`.
 
-- **Task links:** a task (any `bpmn:*Task`) can link to a page or database row with the extension attribute `notiz:pageId` (namespace `NOTIZ_BPMN_NAMESPACE`, declared to bpmn-js as a moddle extension), so links live in the XML and survive copy/paste, undo, import and export. There is no link table: `GET /api/pages/:id/diagram-links` parses the stored XML (`extractDiagramLinks`) and resolves each link to `{ elementId, pageId, state, title, icon, status }`. `state` is `missing` for trashed, deleted or invalid targets; `status` is the option of the row's first status property (property order), else `null`. Saving never fails because of a link. Backlinks would need a table and are not built.
+- **Task links:** a task (any `bpmn:*Task`) can link to a page or database row with the extension attribute `notiz:pageId` (namespace `NOTIZ_BPMN_NAMESPACE`, declared to bpmn-js as a moddle extension), so links live in the XML and survive copy/paste, undo, import and export. There is no link table: `GET /api/pages/:id/diagram-links` parses the stored XML (`extractDiagramLinks`) and resolves each link to `{ elementId, pageId, state, title, icon, status }`. `state` is `missing` for trashed, deleted or invalid targets; `status` is the option of the row's first status property (property order), else `null`. Saving never fails because of a link.
+- **Backlinks:** every diagram save rewrites that diagram's `diagram_links` rows in the same transaction as the page and `pages_fts`; purging a diagram deletes its rows; trashed diagrams are filtered out on read. The server rebuilds the whole table from the stored XML on start (`rebuildDiagramLinks`, idempotent), which also backfills diagrams saved before the table existed. `GET /api/pages/:id/diagram-usages` lists the active diagrams linking to a page, once each, ordered by title; the web shows them as "Used in diagrams" under the page header. The badges endpoint still parses the XML.
 - Web: the toolbar offers "Link page…" while one task is selected (`LinkPicker`: pages from the tree without the diagram itself, or rows of a chosen database's first view; "Remove link"). Links are set with `modeling.updateProperties`, so they autosave and undo like any edit. `LinkBadge`s are rendered with portals into detached hosts that bpmn-js places as overlays below the tasks; the links query is refetched after every diagram save and on window focus.
 
 `multi_select` and other Notion types are decided in Phase 7. Notion "person" properties (e.g. Assignee) have no equivalent in a single-user app and are skipped on import.
@@ -188,6 +199,7 @@ All endpoints live under `/api`. Request/response schemas come from `packages/sh
 | DELETE | `/api/widgets/:id`              | 4     | Delete widget (204)                                                          |
 | GET    | `/api/widgets/:id/data`         | 4     | Aggregated `{ state, total, buckets }`                                       |
 | GET    | `/api/pages/:id/diagram-links`  | 5     | Pages linked from a diagram's tasks, with state and row status               |
+| GET    | `/api/pages/:id/diagram-usages` | 5     | Active diagrams that link to the page (backlinks)                            |
 
 `PATCH /api/pages/:id` also accepts `properties` for database rows (Phase 3). Later phases add search and templates.
 

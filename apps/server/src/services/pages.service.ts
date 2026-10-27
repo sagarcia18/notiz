@@ -11,12 +11,14 @@ import {
   type PropertyValues,
   type UpdatePageInput,
   extractBpmnText,
+  extractDiagramLinks,
   extractPlainText,
   pageContentSchema,
   sortKeyBetween,
 } from '@notiz/shared';
 import type { AppDatabase } from '../db/client.js';
 import { ConflictError, NotFoundError, ValidationError } from '../errors.js';
+import * as linksRepo from '../repositories/diagramLinks.repository.js';
 import * as repo from '../repositories/pages.repository.js';
 import type { PageRow } from '../repositories/pages.repository.js';
 import { parseValues } from './databaseJson.js';
@@ -143,6 +145,7 @@ export function updatePage(db: AppDatabase, id: string, input: UpdatePageInput):
     }
     if (diagram !== undefined) {
       repo.updateSearchBody(db, id, extractBpmnText(diagram));
+      linksRepo.replaceDiagramLinks(db, id, extractDiagramLinks(diagram));
     }
     return toDetail(db, row);
   });

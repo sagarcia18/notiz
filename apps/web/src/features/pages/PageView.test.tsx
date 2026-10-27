@@ -70,6 +70,7 @@ const responses: Record<string, unknown> = {
   [`/api/pages/${rowId}`]: page(rowId, 'Row one', { parentId: databaseId, databaseId }),
   [`/api/databases/${databaseId}`]: database,
   [`/api/views/${viewId}/rows`]: [row],
+  [`/api/pages/${rowId}/diagram-usages`]: [{ diagramId, title: 'Process', icon: null }],
   [`/api/pages/${diagramId}`]: page(diagramId, 'Process', {
     kind: 'bpmn',
     diagram: '<definitions/>',
@@ -134,5 +135,12 @@ describe('PageView', () => {
     renderAt(`/pages/${diagramId}`);
     await screen.findByText('diagram: <definitions/>');
     expect(screen.queryByText('editor')).toBeNull();
+  });
+
+  it('links to the diagrams that use the page', async () => {
+    renderAt(`/pages/${rowId}`);
+    const link = await screen.findByRole('link', { name: /Process/ });
+    expect(link.getAttribute('href')).toBe(`/pages/${diagramId}`);
+    expect(screen.getByRole('navigation', { name: 'Used in diagrams' })).toBeTruthy();
   });
 });

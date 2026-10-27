@@ -1,0 +1,22 @@
+.usages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: -12px 0 24px;
+  font-size: 13px;
+}
+
+.label {
+  color: var(--text-muted);
+}
+
+.link {
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+}
+
+.link:hover {
+  border-bottom-color: var(--text);
+}

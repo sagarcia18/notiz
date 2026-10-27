@@ -43,6 +43,13 @@
       "when": 1793114954507,
       "tag": "0005_bpmn",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793129216558,
+      "tag": "0006_diagram_links",
+      "breakpoints": true
     }
   ]
 }

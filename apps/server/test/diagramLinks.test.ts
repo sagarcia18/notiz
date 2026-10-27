@@ -1,29 +1,8 @@
-import {
-  DEFAULT_BPMN_XML,
-  type DiagramLink,
-  NOTIZ_BPMN_NAMESPACE,
-  diagramLinkListSchema,
-  pageDetailSchema,
-} from '@notiz/shared';
+import { type DiagramLink, diagramLinkListSchema, pageDetailSchema } from '@notiz/shared';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { DatabaseApi } from './databaseApi.js';
+import { diagramLinking } from './diagramXml.js';
 import { errorCode } from './pageApi.js';
-
-function diagramLinking(links: Record<string, string>): string {
-  const tasks = Object.entries(links)
-    .map(
-      ([taskId, pageId]) =>
-        `<bpmn:task id="${taskId}" name="${taskId}" notiz:pageId="${pageId}" />`,
-    )
-    .join('');
-  return DEFAULT_BPMN_XML.replace(
-    'id="Definitions_1"',
-    `xmlns:notiz="${NOTIZ_BPMN_NAMESPACE}" id="Definitions_1"`,
-  ).replace(
-    '<bpmn:startEvent id="StartEvent_1" />',
-    `<bpmn:startEvent id="StartEvent_1" />${tasks}`,
-  );
-}
 
 describe('diagram links API', () => {
   let api: DatabaseApi;

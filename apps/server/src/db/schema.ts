@@ -92,3 +92,20 @@ export const dashboardWidgets = sqliteTable(
   },
   (table) => [index('dashboard_widgets_dashboard_idx').on(table.dashboardId)],
 );
+
+/** Derived from the `notiz:pageId` attributes in `pages.diagram_xml`; rebuilt on every diagram save. */
+export const diagramLinks = sqliteTable(
+  'diagram_links',
+  {
+    diagramId: text('diagram_id')
+      .notNull()
+      .references(() => pages.id),
+    elementId: text('element_id').notNull(),
+    /** No foreign key: a link may point to a purged page or an invalid id. */
+    pageId: text('page_id').notNull(),
+  },
+  (table) => [
+    index('diagram_links_diagram_idx').on(table.diagramId),
+    index('diagram_links_page_idx').on(table.pageId),
+  ],
+);

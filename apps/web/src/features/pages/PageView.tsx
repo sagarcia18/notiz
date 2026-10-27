@@ -1,5 +1,7 @@
 import { type ReactElement, Suspense, lazy } from 'react';
 import { useParams } from 'react-router';
+import { DiagramUsages } from '../bpmn/DiagramUsages';
+import { useDiagramUsages } from '../bpmn/useDiagramUsages';
 import { DatabaseView } from '../databases/DatabaseView';
 import { RowProperties } from '../databases/RowProperties';
 import { PageHeader } from './PageHeader';
@@ -19,6 +21,7 @@ export function PageView(): ReactElement {
   const { pageId = '' } = useParams();
   const page = usePage(pageId);
   const updatePage = useUpdatePage(pageId);
+  const usages = useDiagramUsages(pageId);
 
   if (page.isPending) {
     return <p className={styles.muted}>Loading…</p>;
@@ -31,6 +34,7 @@ export function PageView(): ReactElement {
     // Sibling keys must stay unique: equal keys made React leave old headers on screen.
     <article key={page.data.id}>
       <PageHeader page={page.data} onSave={(input) => updatePage.mutate(input)} />
+      {usages.data && <DiagramUsages usages={usages.data} />}
       {updatePage.error && <p className={styles.error}>{updatePage.error.message}</p>}
       {page.data.databaseId !== null && (
         <RowProperties
