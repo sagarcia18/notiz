@@ -46,6 +46,18 @@ export class AttachmentFiles {
     await fs.promises.rm(this.absolutePath(storedPath), { force: true });
   }
 
+  /** Writes bytes already in memory; synchronous so it can run inside a SQLite transaction. */
+  writeBytesSync(storedPath: string, bytes: Uint8Array): number {
+    const target = this.absolutePath(storedPath);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(target, bytes);
+    return bytes.byteLength;
+  }
+
+  removeSync(storedPath: string): void {
+    fs.rmSync(this.absolutePath(storedPath), { force: true });
+  }
+
   /** Deletes the attachment folders of permanently deleted pages. */
   async removePageFolders(pageIds: string[]): Promise<void> {
     await Promise.all(

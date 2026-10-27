@@ -6,6 +6,7 @@ import { registerDashboardRoutes } from './routes/dashboards.routes.js';
 import { registerDatabaseRoutes } from './routes/databases.routes.js';
 import { registerDiagramRoutes } from './routes/diagrams.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
+import { registerImportRoutes } from './routes/import.routes.js';
 import { registerPageRoutes, registerTrashRoutes } from './routes/pages.routes.js';
 import { registerSearchRoutes } from './routes/search.routes.js';
 import { registerSettingsRoutes } from './routes/settings.routes.js';
@@ -39,5 +40,6 @@ export function buildApp({ db, dataDir, logger = false }: BuildAppOptions): Fast
   const files = new AttachmentFiles(dataDir);
   registerTrashRoutes(app, db, files);
   registerAttachmentRoutes(app, db, files);
+  registerImportRoutes(app, db, files);
   return app;
 }

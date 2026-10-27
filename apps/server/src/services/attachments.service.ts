@@ -62,6 +62,43 @@ export async function uploadAttachment(
   }
 }
 
+export interface FileBytes {
+  fileName: string;
+  mime: string;
+  bytes: Uint8Array;
+}
+
+/**
+ * Stores a file that is already in memory (used by the import, inside its
+ * transaction). The stored path is reported to `onWritten` before the row is
+ * inserted, so the caller can remove the file if the transaction fails.
+ */
+export function storeAttachmentBytes(
+  db: AppDatabase,
+  files: AttachmentFiles,
+  pageId: string,
+  file: FileBytes,
+  onWritten: (storedPath: string) => void,
+): Attachment {
+  requireActivePage(db, pageId);
+  if (file.bytes.byteLength > MAX_ATTACHMENT_BYTES) {
+    throw new ValidationError(tooLargeMessage);
+  }
+  const id = randomUUID();
+  const storedPath = files.storedPathFor(pageId, id, file.fileName);
+  onWritten(storedPath);
+  const size = files.writeBytesSync(storedPath, file.bytes);
+  const row = repo.insertAttachment(db, {
+    id,
+    pageId,
+    fileName: file.fileName,
+    storedPath,
+    mime: file.mime,
+    size,
+  });
+  return toAttachment(row);
+}
+
 export function getAttachment(db: AppDatabase, id: string): AttachmentRow {
   const row = repo.findAttachment(db, id);
   if (!row) {
