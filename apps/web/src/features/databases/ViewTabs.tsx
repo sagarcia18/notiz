@@ -14,7 +14,7 @@ interface ViewTabsProps {
   onDelete: (id: string) => void;
 }
 
-/** View switcher: click selects, double-click renames, "+" adds a table or board. */
+/** View switcher: click selects, double-click renames, × deletes the active view, "+" adds one. */
 export function ViewTabs({
   views,
   activeId,
@@ -24,6 +24,9 @@ export function ViewTabs({
   onDelete,
 }: ViewTabsProps): ReactElement {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const deleteView = (view: DatabaseView): void => {
+    if (window.confirm(`Delete view "${view.name}"?`)) onDelete(view.id);
+  };
 
   return (
     <div className={styles.tabs} role="tablist">
@@ -47,18 +50,30 @@ export function ViewTabs({
             }}
           />
         ) : (
-          <button
-            key={view.id}
-            type="button"
-            role="tab"
-            aria-selected={view.id === activeId}
-            className={[styles.tab, view.id === activeId ? styles.tabActive : ''].join(' ')}
-            title="Double-click to rename"
-            onClick={() => onSelect(view.id)}
-            onDoubleClick={() => setEditingId(view.id)}
-          >
-            {viewIcons[view.type]} {view.name}
-          </button>
+          <span key={view.id} className={styles.tabGroup}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view.id === activeId}
+              className={[styles.tab, view.id === activeId ? styles.tabActive : ''].join(' ')}
+              title="Double-click to rename"
+              onClick={() => onSelect(view.id)}
+              onDoubleClick={() => setEditingId(view.id)}
+            >
+              {viewIcons[view.type]} {view.name}
+            </button>
+            {view.id === activeId && views.length > 1 && (
+              <button
+                type="button"
+                className={styles.tabDelete}
+                aria-label={`Delete view ${view.name}`}
+                title="Delete view"
+                onClick={() => deleteView(view)}
+              >
+                ×
+              </button>
+            )}
+          </span>
         ),
       )}
       <Popover label="+" title="Add view">
@@ -68,18 +83,6 @@ export function ViewTabs({
         <button type="button" className={styles.button} onClick={() => onAdd('board')}>
           {viewIcons.board} Board
         </button>
-        {views.length > 1 && (
-          <button
-            type="button"
-            className={`${styles.button} ${styles.danger}`}
-            onClick={() => {
-              const view = views.find((candidate) => candidate.id === activeId);
-              if (view && window.confirm(`Delete view "${view.name}"?`)) onDelete(view.id);
-            }}
-          >
-            Delete current view
-          </button>
-        )}
       </Popover>
     </div>
   );

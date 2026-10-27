@@ -98,6 +98,7 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 - Phase 3 UI otherwise not yet fully tested in the browser by the user (table editing, property menu, filters/sorts, board drag-and-drop, row page panel, dark mode).
 - Databases: the selected view tab is not remembered across reloads; no row peek/side panel (rows open as full pages); no date ranges/times, `multi_select`, number formats, formulas or relations (Phase 7). Property values are not part of full-text search.
 - Board drop sends two requests (value, then position) without a transaction; table and board updates are not optimistic (they refetch after the server answers). Columns are reordered with Move ←/→ in the property menu, not by dragging.
+- Fixed (user feedback): a view could only be deleted from the "+" add-view menu, which users did not find. The active tab now has a × ("Delete view <name>", with confirmation; not shown for the last view). Regression test: `ViewTabs.test.tsx`.
 - A row restored from the trash after its database was deleted moves to the top level as a normal page; its old `properties_json` stays but is no longer shown.
 
 - Phase 4 UI not yet tested in the browser by the user (adding widgets, settings popover inside a grid item, drag/resize and saving, charts in dark mode, refresh after editing rows).

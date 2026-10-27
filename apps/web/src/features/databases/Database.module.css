@@ -51,6 +51,28 @@
   background: var(--hover);
 }
 
+.tabGroup {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tabDelete {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tabDelete:hover {
+  background: var(--hover);
+  color: var(--error);
+}
+
 .buttonActive {
   color: var(--accent);
 }
