@@ -14,7 +14,13 @@ import { NotFoundError, ValidationError } from '../errors.js';
 import * as repo from '../repositories/databases.repository.js';
 import * as pagesRepo from '../repositories/pages.repository.js';
 import type { PageRow } from '../repositories/pages.repository.js';
-import { parseConfig, parseValues, toProperty, toView } from './databaseJson.js';
+import {
+  parseConfig,
+  parseValues,
+  relationConfigJson,
+  toProperty,
+  toView,
+} from './databaseJson.js';
 import { normalizeOptions } from './databaseSetup.js';
 
 export function requireDatabase(db: AppDatabase, id: string): PageRow {
@@ -47,6 +53,22 @@ function requireProperty(db: AppDatabase, id: string): DatabaseProperty {
   return toProperty(row);
 }
 
+/** The target database a relation property ends up with, checked to be an active database. */
+function relationTarget(
+  db: AppDatabase,
+  type: DatabaseProperty['type'],
+  requested: string | undefined,
+  current: string | null,
+): string | null {
+  if (type !== 'relation') return null;
+  const target = requested ?? current;
+  if (target === null) {
+    throw new ValidationError('A relation needs a target database');
+  }
+  requireDatabase(db, target);
+  return target;
+}
+
 export function createProperty(
   db: AppDatabase,
   databaseId: string,
@@ -54,6 +76,7 @@ export function createProperty(
 ): DatabaseProperty {
   return db.transaction(() => {
     requireDatabase(db, databaseId);
+    const target = relationTarget(db, input.type, input.relationDatabaseId, null);
     const last = repo.listProperties(db, databaseId).at(-1);
     const row = repo.insertProperty(db, {
       id: randomUUID(),
@@ -61,6 +84,7 @@ export function createProperty(
       name: input.name,
       type: input.type,
       optionsJson: JSON.stringify(normalizeOptions(input.type, input.options)),
+      configJson: relationConfigJson(target),
       sortOrder: sortKeyBetween(last?.sortOrder ?? null, null),
     });
     return toProperty(row);
@@ -133,16 +157,22 @@ export function updateProperty(
     }
     const type = input.type ?? before.type;
     const options = normalizeOptions(type, input.options ?? before.options);
+    const target = relationTarget(db, type, input.relationDatabaseId, before.relationDatabaseId);
     const row = repo.updateProperty(db, id, {
       name: input.name,
       type,
       optionsJson: JSON.stringify(options),
+      configJson: relationConfigJson(target),
     });
     const after = toProperty(row);
-    if (type !== before.type || JSON.stringify(options) !== JSON.stringify(before.options)) {
+    // Row ids of another database mean nothing for the new target.
+    const retargeted = type === 'relation' && before.relationDatabaseId !== target;
+    if (retargeted) {
+      rewriteRowValues(db, before, () => null);
+    } else if (type !== before.type || JSON.stringify(options) !== JSON.stringify(before.options)) {
       rewriteRowValues(db, before, (value) => convertPropertyValue(value, before, after));
     }
-    if (type !== before.type) {
+    if (type !== before.type || retargeted) {
       pruneViews(db, after.databaseId, (config) => afterTypeChange(config, after));
     }
     return after;

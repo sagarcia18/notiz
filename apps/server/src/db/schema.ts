@@ -65,9 +65,12 @@ export const dbProperties = sqliteTable(
         'date',
         'checkbox',
         'url',
+        'relation',
       ],
     }).notNull(),
     optionsJson: text('options_json').notNull().default('[]'),
+    /** Type-specific settings; `{ relationDatabaseId }` for relation properties. */
+    configJson: text('config_json').notNull().default('{}'),
     sortOrder: text('sort_order').notNull(),
   },
   (table) => [index('db_properties_database_idx').on(table.databaseId, table.sortOrder)],

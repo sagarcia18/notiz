@@ -12,7 +12,15 @@ const ids = {
 };
 
 function property(id: string, type: DatabaseProperty['type']): DatabaseProperty {
-  return { id, databaseId, name: type, type, options: [], sortOrder: 'a0' };
+  return {
+    id,
+    databaseId,
+    name: type,
+    type,
+    options: [],
+    relationDatabaseId: null,
+    sortOrder: 'a0',
+  };
 }
 
 const properties = [

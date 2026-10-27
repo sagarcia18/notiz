@@ -13,6 +13,7 @@ const property: DatabaseProperty = {
     { id: 'red', name: 'Red', color: 'red' },
     { id: 'blue', name: 'Blue', color: 'blue' },
   ],
+  relationDatabaseId: null,
   sortOrder: 'a0',
 };
 

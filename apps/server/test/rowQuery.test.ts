@@ -11,7 +11,15 @@ function property(id: string, type: PropertyType): DatabaseProperty {
           { id: 'done', name: 'Done', color: 'green' as const, group: 'complete' as const },
         ]
       : [];
-  return { id, databaseId: 'db', name: id, type, options, sortOrder: 'a0' };
+  return {
+    id,
+    databaseId: 'db',
+    name: id,
+    type,
+    options,
+    relationDatabaseId: null,
+    sortOrder: 'a0',
+  };
 }
 
 const props = new Map(

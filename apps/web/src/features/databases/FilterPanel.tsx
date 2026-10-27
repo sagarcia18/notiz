@@ -10,6 +10,8 @@ import {
 import type { ReactElement } from 'react';
 import styles from './Database.module.css';
 import { groupLabels } from './OptionsEditor';
+import { rowLabel } from './relationValues';
+import { useRelationRows } from './useRelationRows';
 
 const operatorLabels: Record<FilterOperator, string> = {
   equals: 'is',
@@ -47,9 +49,53 @@ interface ValueInputProps {
   onChange: (value: string | number | undefined) => void;
 }
 
+interface ChoiceSelectProps {
+  choices: readonly { id: string; name: string }[];
+  value: string;
+  onChange: (value: string) => void;
+}
+
+function ChoiceSelect({ choices, value, onChange }: ChoiceSelectProps): ReactElement {
+  return (
+    <select
+      className={styles.select}
+      aria-label="Filter value"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      <option value="">—</option>
+      {choices.map((choice) => (
+        <option key={choice.id} value={choice.id}>
+          {choice.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+/** Relation filters compare against a row of the target database. */
+function RelationChoice(props: {
+  databaseId: string;
+  value: string;
+  onChange: (value: string) => void;
+}): ReactElement {
+  const rows = useRelationRows(props.databaseId);
+  const choices = (rows.data ?? []).map((row) => ({ id: row.id, name: rowLabel(row) }));
+  return <ChoiceSelect choices={choices} value={props.value} onChange={props.onChange} />;
+}
+
 function FilterValueInput({ property, filter, onChange }: ValueInputProps): ReactElement | null {
   if (!operatorNeedsValue(filter.operator)) return null;
   const value = filter.value ?? '';
+  if (property.type === 'relation' && property.relationDatabaseId !== null) {
+    return (
+      <RelationChoice
+        databaseId={property.relationDatabaseId}
+        value={String(value)}
+        onChange={onChange}
+      />
+    );
+  }
   const choices =
     filter.operator === 'in_group'
       ? statusGroupSchema.options.map((group) => ({ id: group, name: groupLabels[group] }))
@@ -57,21 +103,7 @@ function FilterValueInput({ property, filter, onChange }: ValueInputProps): Reac
         ? property.options
         : null;
   if (choices) {
-    return (
-      <select
-        className={styles.select}
-        aria-label="Filter value"
-        value={String(value)}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        <option value="">—</option>
-        {choices.map((choice) => (
-          <option key={choice.id} value={choice.id}>
-            {choice.name}
-          </option>
-        ))}
-      </select>
-    );
+    return <ChoiceSelect choices={choices} value={String(value)} onChange={onChange} />;
   }
   const type = property.type === 'number' ? 'number' : property.type === 'date' ? 'date' : 'text';
   return (

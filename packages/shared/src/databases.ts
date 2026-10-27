@@ -12,6 +12,7 @@ export const propertyTypeSchema = z.enum([
   'date',
   'checkbox',
   'url',
+  'relation',
 ]);
 
 export type PropertyType = z.infer<typeof propertyTypeSchema>;
@@ -68,6 +69,8 @@ export const databasePropertySchema = z.object({
   name: z.string(),
   type: propertyTypeSchema,
   options: z.array(propertyOptionSchema),
+  /** Target database of a `relation` property (its values are row ids there); null otherwise. */
+  relationDatabaseId: pageIdSchema.nullable(),
   sortOrder: z.string(),
 });
 
@@ -80,6 +83,8 @@ export const createPropertyInputSchema = z.object({
   name: propertyNameSchema,
   type: propertyTypeSchema.exclude(['title']),
   options: optionsInputSchema.optional(),
+  /** Required when `type` is `relation`. */
+  relationDatabaseId: pageIdSchema.optional(),
 });
 
 export type CreatePropertyInput = z.infer<typeof createPropertyInputSchema>;
@@ -89,11 +94,12 @@ export const updatePropertyInputSchema = z
     name: propertyNameSchema.optional(),
     type: propertyTypeSchema.exclude(['title']).optional(),
     options: optionsInputSchema.optional(),
+    /** Changing the target database clears the property's values. */
+    relationDatabaseId: pageIdSchema.optional(),
   })
-  .refine(
-    (input) => input.name !== undefined || input.type !== undefined || input.options !== undefined,
-    { message: 'Nothing to update' },
-  );
+  .refine((input) => Object.values(input).some((value) => value !== undefined), {
+    message: 'Nothing to update',
+  });
 
 export type UpdatePropertyInput = z.infer<typeof updatePropertyInputSchema>;
 

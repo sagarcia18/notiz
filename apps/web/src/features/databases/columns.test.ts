@@ -3,7 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { moveColumn, tableColumns, updateColumn } from './columns';
 
 function property(id: string, type: PropertyType = 'text'): DatabaseProperty {
-  return { id, databaseId: 'db', name: id, type, options: [], sortOrder: id };
+  return {
+    id,
+    databaseId: 'db',
+    name: id,
+    type,
+    options: [],
+    relationDatabaseId: null,
+    sortOrder: id,
+  };
 }
 
 const properties = [property('a'), property('name', 'title'), property('b'), property('c')];

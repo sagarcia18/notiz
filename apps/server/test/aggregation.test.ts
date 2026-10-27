@@ -14,6 +14,7 @@ const status: DatabaseProperty = {
   databaseId,
   name: 'Status',
   type: 'status',
+  relationDatabaseId: null,
   sortOrder: 'a1',
   options: [
     { id: 'todo', name: 'Not started', color: 'gray', group: 'todo' },
@@ -27,6 +28,7 @@ const points: DatabaseProperty = {
   databaseId,
   name: 'Points',
   type: 'number',
+  relationDatabaseId: null,
   sortOrder: 'a2',
   options: [],
 };

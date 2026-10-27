@@ -82,3 +82,17 @@
   padding: 2px 0;
   cursor: pointer;
 }
+
+.relationPill {
+  padding: 0 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.relationOption {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}

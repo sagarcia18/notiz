@@ -1,0 +1,1 @@
+ALTER TABLE `db_properties` ADD `config_json` text DEFAULT '{}' NOT NULL;

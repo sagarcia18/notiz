@@ -5,10 +5,11 @@ import {
   hasOptions,
   propertyTypeSchema,
 } from '@notiz/shared';
-import type { ReactElement } from 'react';
+import { type ReactElement, useState } from 'react';
 import { blurOnEnter } from './blurOnEnter';
 import styles from './Database.module.css';
 import { OptionsEditor } from './OptionsEditor';
+import { RelationTargetSelect } from './RelationTargetSelect';
 
 export const typeLabels: Record<PropertyType, string> = {
   title: 'Title',
@@ -20,7 +21,10 @@ export const typeLabels: Record<PropertyType, string> = {
   date: 'Date',
   checkbox: 'Checkbox',
   url: 'URL',
+  relation: 'Relation',
 };
+
+const typeChangeWarning = 'Changing the type converts or clears existing values. Continue?';
 
 const editableTypes = propertyTypeSchema.options.filter(
   (type): type is Exclude<PropertyType, 'title'> => type !== 'title',
@@ -43,6 +47,19 @@ export function PropertyMenu({
   onMove,
 }: PropertyMenuProps): ReactElement {
   const isTitle = property.type === 'title';
+  // Switching to a relation waits until its database is chosen.
+  const [choosingRelation, setChoosingRelation] = useState(false);
+  const pickRelationTarget = (relationDatabaseId: string): void => {
+    if (property.type !== 'relation') {
+      if (window.confirm(typeChangeWarning)) onUpdate({ type: 'relation', relationDatabaseId });
+      setChoosingRelation(false);
+    } else if (
+      relationDatabaseId !== property.relationDatabaseId &&
+      window.confirm('Changing the database clears the linked rows. Continue?')
+    ) {
+      onUpdate({ relationDatabaseId });
+    }
+  };
   return (
     <>
       <input
@@ -61,14 +78,13 @@ export function PropertyMenu({
         <span className={styles.muted}>Type</span>
         <select
           className={`${styles.select} ${styles.grow}`}
-          value={property.type}
+          value={choosingRelation ? 'relation' : property.type}
           disabled={isTitle}
           onChange={(event) => {
             const type = editableTypes.find((candidate) => candidate === event.target.value);
-            const confirmed =
-              type !== undefined &&
-              window.confirm('Changing the type converts or clears existing values. Continue?');
-            if (type && confirmed) onUpdate({ type });
+            setChoosingRelation(type === 'relation' && property.type !== 'relation');
+            if (type === 'relation' || type === property.type) return;
+            if (type && window.confirm(typeChangeWarning)) onUpdate({ type });
           }}
         >
           {(isTitle ? propertyTypeSchema.options : editableTypes).map((type) => (
@@ -78,6 +94,9 @@ export function PropertyMenu({
           ))}
         </select>
       </label>
+      {(choosingRelation || property.type === 'relation') && (
+        <RelationTargetSelect value={property.relationDatabaseId} onChange={pickRelationTarget} />
+      )}
       {hasOptions(property.type) && (
         <OptionsEditor
           options={property.options}

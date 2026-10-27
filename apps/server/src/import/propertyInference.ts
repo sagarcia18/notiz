@@ -8,7 +8,8 @@ import {
   isDateValue,
 } from '@notiz/shared';
 
-export type ImportedType = Exclude<PropertyType, 'title'>;
+/** Notion relations are imported as text, so imports never create relation properties. */
+export type ImportedType = Exclude<PropertyType, 'title' | 'relation'>;
 
 /** How one CSV column is imported; `skip` columns are left out. */
 export interface InferredColumn {

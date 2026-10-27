@@ -7,6 +7,7 @@ const status: DatabaseProperty = {
   databaseId: 'db',
   name: 'Status',
   type: 'status',
+  relationDatabaseId: null,
   sortOrder: 'a1',
   options: [
     { id: 'todo', name: 'To do', color: 'gray', group: 'todo' },

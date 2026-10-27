@@ -3,6 +3,7 @@ import { type ReactElement, useState } from 'react';
 import { blurOnEnter } from './blurOnEnter';
 import { MultiChoiceCell } from './MultiChoiceCell';
 import { OptionPill } from './OptionPill';
+import { RelationCell } from './RelationCell';
 import styles from './PropertyCell.module.css';
 
 interface PropertyCellProps {
@@ -95,6 +96,18 @@ export function PropertyCell({ property, value, onChange }: PropertyCellProps): 
       return <ChoiceCell property={property} value={value} onChange={onChange} />;
     case 'multi_select':
       return <MultiChoiceCell property={property} value={value} onChange={onChange} />;
+    case 'relation': {
+      const { relationDatabaseId } = property;
+      return relationDatabaseId === null ? (
+        <span className={styles.empty}>No related database</span>
+      ) : (
+        <RelationCell
+          property={{ ...property, relationDatabaseId }}
+          value={value}
+          onChange={onChange}
+        />
+      );
+    }
     case 'number': {
       const initial = typeof value === 'number' ? String(value) : '';
       return (

@@ -64,6 +64,13 @@
       "when": 1793136863851,
       "tag": "0008_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1793142302423,
+      "tag": "0009_property_config",
+      "breakpoints": true
     }
   ]
 }

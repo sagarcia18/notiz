@@ -42,7 +42,15 @@ function page(id: string, title: string, extra: Partial<PageDetail>): PageDetail
 const database: DatabaseDetail = {
   id: databaseId,
   properties: [
-    { id: titleId, databaseId, name: 'Name', type: 'title', options: [], sortOrder: 'a0' },
+    {
+      id: titleId,
+      databaseId,
+      name: 'Name',
+      type: 'title',
+      options: [],
+      relationDatabaseId: null,
+      sortOrder: 'a0',
+    },
   ],
   views: [
     {

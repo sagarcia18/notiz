@@ -99,3 +99,24 @@ describe('multi_select values', () => {
     expect(convertPropertyValue(['o1'], tags, { type: 'select', options: other })).toBe('x');
   });
 });
+
+describe('relation values', () => {
+  const relation = { type: 'relation' as const, options: [] };
+  const rowA = '00000000-0000-4000-8000-00000000000a';
+  const rowB = '00000000-0000-4000-8000-00000000000b';
+
+  it('accepts unique row ids only', () => {
+    expect(isValidPropertyValue(relation, [rowA, rowB])).toBe(true);
+    expect(isValidPropertyValue(relation, [])).toBe(true);
+    expect(isValidPropertyValue(relation, [rowA, rowA])).toBe(false);
+    expect(isValidPropertyValue(relation, ['not-a-row'])).toBe(false);
+    expect(isValidPropertyValue(relation, rowA)).toBe(false);
+  });
+
+  it('has no plain text and clears on type changes in either direction', () => {
+    expect(valueToText(relation, [rowA])).toBe('');
+    expect(convertPropertyValue([rowA], relation, { type: 'text', options: [] })).toBeNull();
+    expect(convertPropertyValue('Open', { type: 'text', options: [] }, relation)).toBeNull();
+    expect(convertPropertyValue([rowA], relation, relation)).toEqual([rowA]);
+  });
+});

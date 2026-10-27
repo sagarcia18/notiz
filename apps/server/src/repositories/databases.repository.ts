@@ -12,6 +12,7 @@ export interface NewPropertyRow {
   name: string;
   type: PropertyType;
   optionsJson: string;
+  configJson?: string;
   sortOrder: string;
 }
 
@@ -19,6 +20,7 @@ export interface PropertyPatch {
   name?: string;
   type?: PropertyType;
   optionsJson?: string;
+  configJson?: string;
 }
 
 export interface NewViewRow {

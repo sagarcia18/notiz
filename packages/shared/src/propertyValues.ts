@@ -43,6 +43,17 @@ function isValidOptionList(options: PropertyOption[], value: PropertyValue): boo
   );
 }
 
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Unique row ids; whether they are rows of the target database is checked by the server. */
+function isValidRowIdList(value: PropertyValue): boolean {
+  return (
+    Array.isArray(value) &&
+    new Set(value).size === value.length &&
+    value.every((id) => uuidPattern.test(id))
+  );
+}
+
 /** Whether `value` may be stored for the property. `null` (clear) is always valid. */
 export function isValidPropertyValue(
   property: Pick<DatabaseProperty, 'type' | 'options'>,
@@ -67,6 +78,8 @@ export function isValidPropertyValue(
       return typeof value === 'string' && hasOption(property.options, value);
     case 'multi_select':
       return isValidOptionList(property.options, value);
+    case 'relation':
+      return isValidRowIdList(value);
   }
 }
 
@@ -98,6 +111,10 @@ export function valueToText(
   }
   if (property.type === 'multi_select') {
     return optionNames(property.options, value).join(MULTI_VALUE_SEPARATOR);
+  }
+  // Relation values are row ids; their titles live in another database.
+  if (property.type === 'relation') {
+    return '';
   }
   return String(value);
 }
@@ -148,6 +165,10 @@ export function convertPropertyValue(
 ): PropertyValue {
   if (isEmptyValue(value)) {
     return null;
+  }
+  // Row ids only mean something for the same target; the service clears them when it changes.
+  if (from.type === 'relation' || to.type === 'relation') {
+    return from.type === to.type ? value : null;
   }
   const text = valueToText(from, value);
   let converted: PropertyValue;
