@@ -42,7 +42,7 @@ apps/
       lib/              apiClient (fetch + schema validation)
 packages/
   shared/               Zod schemas + types: the API contract
-  mcp/                  MCP server (Phase 6)
+  mcp/                  MCP server (Phase 6): apiClient, tools/<area>.tools.ts, stdio entry
 docs/ARCHITECTURE.md
 ```
 
@@ -202,8 +202,23 @@ All endpoints live under `/api`. Request/response schemas come from `packages/sh
 | GET    | `/api/widgets/:id/data`         | 4     | Aggregated `{ state, total, buckets }`                                       |
 | GET    | `/api/pages/:id/diagram-links`  | 5     | Pages linked from a diagram's tasks, with state and row status               |
 | GET    | `/api/pages/:id/diagram-usages` | 5     | Active diagrams that link to the page (backlinks)                            |
+| GET    | `/api/search?q=&limit=`         | 6     | Full-text search, best rank first (limit 1-50, default 20)                   |
 
-`PATCH /api/pages/:id` also accepts `properties` for database rows (Phase 3). Later phases add search and templates.
+`PATCH /api/pages/:id` also accepts `properties` for database rows (Phase 3). Templates come later.
+
+### Search (Phase 6)
+
+`search.service` turns the text into an FTS5 query with `toFtsQuery` (shared): every word is quoted and prefix-matched (`"word"*`, implicit AND), so user input never becomes FTS syntax. `search.repository` joins `pages_fts` with `pages`, drops trashed pages and templates, orders by `rank` and returns an FTS `snippet`. Database rows are included and carry `databaseId`. The searched text is what the page service already writes to `pages_fts`: titles, document text, diagram labels and database descriptions (not row property values).
+
+## MCP server (Phase 6)
+
+`packages/mcp` is a stdio MCP server (`@modelcontextprotocol/sdk`) started by Claude Desktop / Claude Code (`pnpm --filter @notiz/mcp start`, setup in `packages/mcp/README.md`). It never opens the SQLite file: every tool calls the REST API through `NotizApi` (`fetch` + shared Zod schemas), so routes -> services -> repositories stay the only data path and the Notiz server must be running. The address is `NOTIZ_API_URL`, else `http://localhost:$PORT` (default 3001).
+
+- Tools: `list_page_tree`, `get_page`, `search_pages`, `create_page`, `update_page`, `move_page`, `trash_page` (`tools/pages.tools.ts`); `get_database`, `list_database_rows`, `create_database_row`, `update_database_row`, `add_database_property` (`tools/databases.tools.ts`); `get_diagram_links`, `get_diagram_usages` (`tools/diagrams.tools.ts`).
+- Documents: `get_page` adds a plain-text `text` next to the BlockNote `content`; `create_page` / `update_page` accept either `content` (BlockNote blocks) or `text`, which `textToBlocks` turns into headings, list, checklist and paragraph blocks. Both replace the whole document.
+- Diagrams are read and written as XML through `update_page { diagram }`; links are `notiz:pageId` attributes in that XML, resolved by the diagram-links endpoints.
+- API error answers become tool results with `isError` and the text `code: message`; an unreachable server is reported as `unreachable`. Invalid arguments are rejected by the SDK from the tool's Zod schema.
+- Tests (`packages/mcp/test`) connect a real MCP `Client` over `InMemoryTransport` to the server, whose `fetch` is routed into `buildApp(...).inject` on an in-memory database.
 
 ## Decisions
 

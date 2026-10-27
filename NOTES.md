@@ -8,6 +8,14 @@ Phase 2 (block editor) done on branch `phase-2-block-editor` (branched from phas
 Phase 3 (databases) done on branch `phase-3-databases` (branched from phase 2).
 Phase 4 (dashboards) done on branch `phase-4-dashboards` (branched from phase 3).
 Phase 5 (BPMN diagrams) done on branch `phase-5-bpmn` (branched from phase 4).
+Phase 6 (MCP server) done on branch `phase-6-mcp` (branched from phase 5).
+
+## Phase 6 - what was built
+
+- Dependency (approved): `@modelcontextprotocol/sdk` 1.32 in `packages/mcp` (plus `tsx`, already used by the server, to run it). No migration.
+- Search API: `GET /api/search?q=&limit=` (`search.routes` -> `search.service` -> `search.repository`); shared `search.ts` with query/result schemas and `toFtsQuery` (every word quoted + prefix, so input is never FTS syntax). Skips trash and templates, includes database rows (`databaseId`), returns a snippet.
+- MCP server (`packages/mcp`): stdio entry `src/index.ts`, `createNotizMcpServer`, `NotizApi` (fetch + shared schemas, typed `NotizApiError` incl. `unreachable`), 14 tools for pages, search, databases/rows/properties and diagram links/usages. `get_page` adds plain `text`; `create_page`/`update_page` take `text` (Markdown-like lines -> BlockNote blocks via `textToBlocks`) or raw `content`. Setup for Claude Code / Desktop in `packages/mcp/README.md`; details in `docs/ARCHITECTURE.md`.
+- Tests: search API (prefix/accents, AND, FTS syntax as text, rows + trash, limit, validation); MCP tools end-to-end through a real MCP client over `InMemoryTransport` with `fetch` routed into `buildApp().inject` (tool list, pages, tree/move/trash, error mapping, search, databases/rows/properties, diagram links/usages); `NotizApi` with a stubbed fetch, `textToBlocks`, config. New Vitest project `mcp`.
 
 ## Phase 5 - what was built
 
@@ -92,6 +100,10 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 - Task links: badges refresh after a diagram save, on focus or when the diagram is reopened, not live while a row is edited elsewhere. "Used in diagrams" refreshes after a diagram save or on focus. Tasks and data stores can be linked (not events, gateways, data objects or subprocesses). A badge shows a changed database description or row count once the diagram is reopened or the window regains focus. The picker shows rows of the database's first view (its filters apply). Badge colors are fixed light colors on the light canvas.
 - Diagrams: no properties panel (names are edited on the canvas by double-click), no embedding of a diagram inside a doc page, one diagram per page. The lazy `BpmnView` chunk is ~580 kB JS + ~120 kB CSS. The server only checks the `definitions` root; a structurally broken diagram is reported when bpmn-js opens it.
 
+- Phase 6 MCP server not yet tried by the user from Claude Desktop / Claude Code (stdio start and the initialize handshake were smoke-tested locally). It needs the Notiz server running; it does not start it.
+- MCP: `text` input keeps inline formatting (bold, links) as plain text and replaces the whole document (no append/patch of single blocks). No tools yet for attachments, dashboards/widgets, views (create/edit filters), property edits/deletes, trash restore/purge, or reordering with before/after.
+- Search: the API exists, the web search UI does not. Row property values are not searchable; pages created before Phase 2 get a body only on their next edit.
+
 ## Next step
 
-Still open from the project scope: search UI and templates. Phase 6 is the MCP server (it can read and write `diagram` through the existing page API).
+Still open from the project scope: search UI (the `GET /api/search` API is ready) and templates.
