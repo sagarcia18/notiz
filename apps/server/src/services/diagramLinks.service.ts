@@ -54,10 +54,30 @@ function rowStatus(db: AppDatabase, row: PageRow, lookup: StatusLookup): Propert
   return property.options.find((option) => option.id === value) ?? null;
 }
 
+/** Row count and description of a linked database; null for other pages. */
+function databaseInfo(
+  db: AppDatabase,
+  row: PageRow,
+): Pick<DiagramLink, 'rowCount' | 'description'> {
+  if (row.kind !== 'database') return { rowCount: null, description: null };
+  return {
+    rowCount: pagesRepo.listActiveChildren(db, row.id).length,
+    description: row.description ?? '',
+  };
+}
+
 function resolveLink(db: AppDatabase, link: DiagramLinkRef, lookup: StatusLookup): DiagramLink {
   const row = findActivePage(db, link.pageId);
   if (!row) {
-    return { ...link, state: 'missing', title: '', icon: null, status: null };
+    return {
+      ...link,
+      state: 'missing',
+      title: '',
+      icon: null,
+      status: null,
+      rowCount: null,
+      description: null,
+    };
   }
   return {
     ...link,
@@ -65,6 +85,7 @@ function resolveLink(db: AppDatabase, link: DiagramLinkRef, lookup: StatusLookup
     title: row.title,
     icon: row.icon,
     status: rowStatus(db, row, lookup),
+    ...databaseInfo(db, row),
   };
 }
 

@@ -52,18 +52,19 @@ All IDs are UUID strings. Timestamps are ISO-8601 UTC text. JSON columns hold te
 
 ### pages (Phase 0)
 
-| Column                                   | Notes                                                             |
-| ---------------------------------------- | ----------------------------------------------------------------- |
-| `id`                                     | PK                                                                |
-| `parent_id`                              | FK -> pages.id, null for root pages                               |
-| `kind`                                   | `doc` \| `database` \| `dashboard` \| `bpmn`                      |
-| `title`, `icon`                          |                                                                   |
-| `sort_order`                             | Fractional index key (text); reorder without renumbering siblings |
-| `content_json`                           | BlockNote document                                                |
-| `properties_json`                        | Values when the page is a database row, keyed by property id      |
-| `diagram_xml`                            | BPMN 2.0 XML of a `bpmn` page (Phase 5), null for other kinds     |
-| `is_template`                            | Boolean                                                           |
-| `created_at`, `updated_at`, `deleted_at` | `deleted_at` set = in trash (soft delete)                         |
+| Column                                   | Notes                                                               |
+| ---------------------------------------- | ------------------------------------------------------------------- |
+| `id`                                     | PK                                                                  |
+| `parent_id`                              | FK -> pages.id, null for root pages                                 |
+| `kind`                                   | `doc` \| `database` \| `dashboard` \| `bpmn`                        |
+| `title`, `icon`                          |                                                                     |
+| `sort_order`                             | Fractional index key (text); reorder without renumbering siblings   |
+| `content_json`                           | BlockNote document                                                  |
+| `properties_json`                        | Values when the page is a database row, keyed by property id        |
+| `diagram_xml`                            | BPMN 2.0 XML of a `bpmn` page (Phase 5), null for other kinds       |
+| `description`                            | Plain text of a `database` page (migration `0007`), null for others |
+| `is_template`                            | Boolean                                                             |
+| `created_at`, `updated_at`, `deleted_at` | `deleted_at` set = in trash (soft delete)                           |
 
 Trash: deleting a page soft-deletes its whole active subtree with one shared `deleted_at` timestamp. The trash lists only "trash roots" (trashed pages whose parent is not trashed at the same moment). Restoring a page restores the descendants that carry the same `deleted_at`; subpages trashed earlier stay in the trash. If the parent is still trashed, the restored page moves to the top level. Invariant: a trashed page never has active descendants. Nothing is hard-deleted except via the explicit "delete forever" / "empty trash" actions, which also remove the `pages_fts` rows.
 
@@ -115,6 +116,7 @@ Files are written to disk first and the row is inserted afterwards; a failed or 
 ### Databases (Phase 3)
 
 - A new database page gets one `title` property ("Name") and one table view ("Table"). Each database has exactly one title property; it cannot be retyped or deleted, and its value is the row page's `title` (so search and the page header keep working).
+- **Description:** a database page has a plain-text `description` (max 2000 chars, `PATCH { description }`, rejected with 400 on other kinds). `PageDetail.description` is `''` for databases without one and `null` for other kinds. Saving it rewrites `pages_fts.body` (databases have no block content). Edited in a text box under the database title.
 - **Rows** are pages (kind `doc`) whose parent is the database page. Their other values live in `properties_json`, keyed by property id: strings for text/url, numbers, booleans, option ids for select/status, `YYYY-MM-DD` for dates. Values are validated against the property type on every write (`isValidPropertyValue`); `PATCH /api/pages/:id { properties }` merges, `null` removes a value. `PageDetail` carries `databaseId` and `properties` for rows.
 - Rows are hidden from the sidebar tree. Pages cannot be created in or moved into a database except through `POST /api/databases/:id/rows`; reordering rows inside their database uses the normal move endpoint.
 - **Schema changes rewrite data in the same transaction** (rows in the trash included): deleting a property removes its values and its references in view configs; changing the type converts values with `convertPropertyValue` (options become their names and back, numbers/dates are parsed from text, anything else is cleared) and drops filters/grouping on it; removing an option clears the values that used it.
@@ -158,7 +160,7 @@ Derived index of the `notiz:pageId` attributes in `pages.diagram_xml`; the XML s
 - Every diagram save rewrites `pages_fts.body` with `extractBpmnText` (`packages/shared/src/bpmn.ts`): element `name` attributes (tasks, events, gateways, pools, lanes, flows), text annotations and documentation, entities decoded, one per line.
 - Web: `features/bpmn` - lazy `BpmnView` (bpmn-js Modeler on a light canvas, also in dark mode). Every `commandStack.changed` serializes the diagram and schedules it in the shared `useSaveQueue` hook (same debounce and flush-on-leave as the block editor). Import replaces the diagram from a `.bpmn` file and saves it; export downloads `.bpmn` or `.svg`.
 
-- **Task links:** a task (any `bpmn:*Task`) can link to a page or database row with the extension attribute `notiz:pageId` (namespace `NOTIZ_BPMN_NAMESPACE`, declared to bpmn-js as a moddle extension), so links live in the XML and survive copy/paste, undo, import and export. There is no link table: `GET /api/pages/:id/diagram-links` parses the stored XML (`extractDiagramLinks`) and resolves each link to `{ elementId, pageId, state, title, icon, status }`. `state` is `missing` for trashed, deleted or invalid targets; `status` is the option of the row's first status property (property order), else `null`. Saving never fails because of a link.
+- **Task links:** a task (any `bpmn:*Task`) can link to a page or database row, and a data store (`bpmn:DataStoreReference`) to a database (the picker offers only databases), with the extension attribute `notiz:pageId` (namespace `NOTIZ_BPMN_NAMESPACE`, declared to bpmn-js as a moddle extension), so links live in the XML and survive copy/paste, undo, import and export. There is no link table: `GET /api/pages/:id/diagram-links` parses the stored XML (`extractDiagramLinks`) and resolves each link to `{ elementId, pageId, state, title, icon, status, rowCount, description }`. For database targets `rowCount` counts the active rows and `description` is the database description (the badge shows "▦ Title · N rows" with the description as hover text); both are `null` for other pages. `state` is `missing` for trashed, deleted or invalid targets; `status` is the option of the row's first status property (property order), else `null`. Saving never fails because of a link.
 - **Backlinks:** every diagram save rewrites that diagram's `diagram_links` rows in the same transaction as the page and `pages_fts`; purging a diagram deletes its rows; trashed diagrams are filtered out on read. The server rebuilds the whole table from the stored XML on start (`rebuildDiagramLinks`, idempotent), which also backfills diagrams saved before the table existed. `GET /api/pages/:id/diagram-usages` lists the active diagrams linking to a page, once each, ordered by title; the web shows them as "Used in diagrams" under the page header. The badges endpoint still parses the XML.
 - Web: the toolbar offers "Link page…" while one task is selected (`LinkPicker`: pages from the tree without the diagram itself, or rows of a chosen database's first view; "Remove link"). Links are set with `modeling.updateProperties`, so they autosave and undo like any edit. `LinkBadge`s are rendered with portals into detached hosts that bpmn-js places as overlays below the tasks; the links query is refetched after every diagram save and on window focus.
 
@@ -174,7 +176,7 @@ All endpoints live under `/api`. Request/response schemas come from `packages/sh
 | GET    | `/api/pages/tree`               | 1     | Nested tree of active, non-template pages                                    |
 | POST   | `/api/pages`                    | 1     | Create `{ parentId?, title?, kind? }` as last child (201)                    |
 | GET    | `/api/pages/:id`                | 1     | Page detail                                                                  |
-| PATCH  | `/api/pages/:id`                | 1-5   | Update `{ title?, icon?, content?, diagram? }`                               |
+| PATCH  | `/api/pages/:id`                | 1-5   | Update `{ title?, icon?, content?, diagram?, description? }`                 |
 | POST   | `/api/pages/:id/move`           | 1     | Move `{ parentId, beforeId? \| afterId? }`; 409 on cycles or foreign anchors |
 | DELETE | `/api/pages/:id`                | 1     | Move page + subtree to trash (204)                                           |
 | GET    | `/api/trash`                    | 1     | Trash roots, newest first                                                    |

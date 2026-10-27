@@ -22,6 +22,7 @@ export interface PagePatch {
   contentJson?: string;
   propertiesJson?: string;
   diagramXml?: string;
+  description?: string;
 }
 
 const now = sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`;

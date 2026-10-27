@@ -8,6 +8,7 @@ import styles from './Bpmn.module.css';
 import { diagramFileName, downloadText } from './diagramFiles';
 import { LinkBadge } from './LinkBadge';
 import { LinkPicker } from './LinkPicker';
+import type { SelectedTask } from './bpmnServices';
 import { useBpmnModeler } from './useBpmnModeler';
 import { useDiagramLinks } from './useDiagramLinks';
 import { useDiagramSave } from './useDiagramSave';
@@ -17,6 +18,11 @@ export interface BpmnViewProps {
   pageId: string;
   title: string;
   initialXml: string;
+}
+
+function linkButtonLabel(selected: SelectedTask): string {
+  if (selected.pageId !== null) return 'Change link…';
+  return selected.targetKind === 'database' ? 'Link database…' : 'Link page…';
 }
 
 /** BPMN modeler with autosave, import/export and task links. Render with `key={pageId}`. */
@@ -56,7 +62,7 @@ export function BpmnView({ pageId, title, initialXml }: BpmnViewProps): ReactEle
         </p>
         {selectedTask && (
           <button type="button" className={styles.button} onClick={() => setPickerOpen(true)}>
-            {selectedTask.pageId === null ? 'Link page…' : 'Change link…'}
+            {linkButtonLabel(selectedTask)}
           </button>
         )}
         <button type="button" className={styles.button} onClick={() => void downloadBpmn()}>
@@ -84,6 +90,7 @@ export function BpmnView({ pageId, title, initialXml }: BpmnViewProps): ReactEle
       {pickerOpen && selectedTask && (
         <LinkPicker
           diagramId={pageId}
+          targetKind={selectedTask.targetKind}
           linkedPageId={selectedTask.pageId}
           onPick={pickLink}
           onRemove={() => pickLink(null)}

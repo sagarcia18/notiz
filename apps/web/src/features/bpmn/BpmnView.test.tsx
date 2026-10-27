@@ -113,6 +113,7 @@ function detail(diagram: string): PageDetail {
     databaseId: null,
     properties: {},
     diagram,
+    description: null,
   };
 }
 
@@ -223,8 +224,19 @@ describe('BpmnView', () => {
         title: 'Check layout',
         icon: null,
         status: { id: 'doing', name: 'In progress', color: 'blue', group: 'in_progress' },
+        rowCount: null,
+        description: null,
       },
-      { elementId: 'Gone', pageId: specId, state: 'ok', title: 'x', icon: null, status: null },
+      {
+        elementId: 'Gone',
+        pageId: specId,
+        state: 'ok',
+        title: 'x',
+        icon: null,
+        status: null,
+        rowCount: null,
+        description: null,
+      },
     ];
     await renderView();
     await waitFor(() => expect(currentModeler().overlays).toHaveLength(1));

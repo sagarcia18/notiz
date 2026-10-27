@@ -9,6 +9,7 @@ const diagramId = '00000000-0000-4000-8000-0000000000c1';
 const databaseId = '00000000-0000-4000-8000-0000000000c2';
 const viewId = '00000000-0000-4000-8000-0000000000c3';
 const rowId = '00000000-0000-4000-8000-0000000000c4';
+const specId = '00000000-0000-4000-8000-0000000000c5';
 
 const tree: PageTreeNode[] = [
   {
@@ -27,6 +28,15 @@ const tree: PageTreeNode[] = [
     title: 'Tasks',
     icon: null,
     sortOrder: 'a1',
+    children: [],
+  },
+  {
+    id: specId,
+    parentId: null,
+    kind: 'doc',
+    title: 'Spec',
+    icon: null,
+    sortOrder: 'a2',
     children: [],
   },
 ];
@@ -64,13 +74,17 @@ const responses: Record<string, unknown> = {
   [`/api/views/${viewId}/rows`]: rows,
 };
 
-function renderPicker(linkedPageId: string | null): { onPick: () => void; onRemove: () => void } {
+function renderPicker(
+  linkedPageId: string | null,
+  targetKind: 'page' | 'database' = 'page',
+): { onPick: () => void; onRemove: () => void } {
   const onPick = vi.fn();
   const onRemove = vi.fn();
   render(
     <QueryClientProvider client={new QueryClient()}>
       <LinkPicker
         diagramId={diagramId}
+        targetKind={targetKind}
         linkedPageId={linkedPageId}
         onPick={onPick}
         onRemove={onRemove}
@@ -120,5 +134,14 @@ describe('LinkPicker', () => {
     const { onRemove } = renderPicker(rowId);
     fireEvent.click(screen.getByText('Remove link'));
     expect(onRemove).toHaveBeenCalled();
+  });
+
+  it('offers only databases for a data store', async () => {
+    const { onPick } = renderPicker(null, 'database');
+    screen.getByRole('dialog', { name: 'Link data store to a database' });
+    expect(screen.queryByText('Database rows')).toBeNull();
+    fireEvent.click(await screen.findByRole('button', { name: /Tasks/ }));
+    expect(screen.queryByRole('button', { name: /Spec/ })).toBeNull();
+    expect(onPick).toHaveBeenCalledWith(databaseId);
   });
 });

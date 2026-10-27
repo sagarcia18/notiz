@@ -61,6 +61,8 @@ describe('diagram links API', () => {
         title: 'Check layout',
         icon: null,
         status: doing,
+        rowCount: null,
+        description: null,
       },
       {
         elementId: 'Task_2',
@@ -69,6 +71,8 @@ describe('diagram links API', () => {
         title: 'Not started',
         icon: null,
         status: null,
+        rowCount: null,
+        description: null,
       },
     ]);
   });
@@ -77,6 +81,29 @@ describe('diagram links API', () => {
     const page = await api.create('Spec');
     const [link] = await links(await createDiagram({ Task_1: page.id }));
     expect(link).toMatchObject({ state: 'ok', title: 'Spec', status: null });
+  });
+
+  it('resolves a database with its active row count and description', async () => {
+    const database = await api.createDatabase('Devices');
+    await api.addRow(database.id, 'Smoke detector');
+    const trashed = await api.addRow(database.id, 'Old strobe');
+    await api.addRow(database.id, 'Horn');
+    await api.app.inject({ method: 'DELETE', url: `/api/pages/${trashed.id}` });
+    await api.app.inject({
+      method: 'PATCH',
+      url: `/api/pages/${database.id}`,
+      payload: { description: 'Devices per floor' },
+    });
+
+    const [link] = await links(await createDiagram({ DataStore_1: database.id }));
+    expect(link).toMatchObject({
+      elementId: 'DataStore_1',
+      state: 'ok',
+      title: 'Devices',
+      status: null,
+      rowCount: 2,
+      description: 'Devices per floor',
+    });
   });
 
   it('reports trashed, purged and invalid targets as missing', async () => {

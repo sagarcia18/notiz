@@ -39,12 +39,16 @@ export const pageDetailSchema = pageSummarySchema.extend({
   properties: propertyValuesSchema,
   /** BPMN XML of a `bpmn` page; null for other kinds. */
   diagram: z.string().nullable(),
+  /** Plain-text description of a `database` page; null for other kinds. */
+  description: z.string().nullable(),
 });
 
 export type PageDetail = z.infer<typeof pageDetailSchema>;
 
 const titleSchema = z.string().max(500);
 const iconSchema = z.string().max(32).nullable();
+export const MAX_DESCRIPTION_LENGTH = 2000;
+const descriptionSchema = z.string().max(MAX_DESCRIPTION_LENGTH);
 
 export const createPageInputSchema = z.object({
   parentId: pageIdSchema.nullable().optional(),
@@ -63,6 +67,8 @@ export const updatePageInputSchema = z
     properties: propertyValuesSchema.optional(),
     /** `bpmn` pages only: the whole diagram as BPMN 2.0 XML. */
     diagram: diagramXmlSchema.optional(),
+    /** `database` pages only: plain text, also used in full-text search. */
+    description: descriptionSchema.optional(),
   })
   .refine((input) => Object.values(input).some((value) => value !== undefined), {
     message: 'Nothing to update',

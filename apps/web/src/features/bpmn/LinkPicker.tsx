@@ -1,11 +1,14 @@
 import { type ReactElement, useState } from 'react';
 import { useDatabase, useViewRows } from '../databases/useDatabase';
 import { usePageTree } from '../pages/usePages';
+import type { LinkTargetKind } from './bpmnServices';
 import styles from './Bpmn.module.css';
 import { type LinkTarget, filterTargets, flattenTargets, targetLabel } from './linkTargets';
 
 export interface LinkPickerProps {
   diagramId: string;
+  /** `database`: only databases are offered (for data stores). */
+  targetKind: LinkTargetKind;
   linkedPageId: string | null;
   onPick: (pageId: string) => void;
   onRemove: () => void;
@@ -58,9 +61,10 @@ function RowTargets(props: {
   return <ViewRowTargets {...props} viewId={viewId} />;
 }
 
-/** Chooses the page or database row a task links to. */
+/** Chooses the page or database row a task links to, or the database of a data store. */
 export function LinkPicker({
   diagramId,
+  targetKind,
   linkedPageId,
   onPick,
   onRemove,
@@ -72,27 +76,37 @@ export function LinkPicker({
   const [databaseId, setDatabaseId] = useState('');
   const pages = flattenTargets(tree.data ?? [], diagramId);
   const databases = pages.filter((page) => page.kind === 'database');
+  const databasesOnly = targetKind === 'database';
+  const listed = databasesOnly ? databases : pages;
 
   return (
-    <div className={styles.picker} role="dialog" aria-label="Link task to a page">
+    <div
+      className={styles.picker}
+      role="dialog"
+      aria-label={databasesOnly ? 'Link data store to a database' : 'Link task to a page'}
+    >
       <div className={styles.toolbar}>
-        <button
-          type="button"
-          className={styles.button}
-          aria-pressed={tab === 'pages'}
-          onClick={() => setTab('pages')}
-        >
-          Pages
-        </button>
-        <button
-          type="button"
-          className={styles.button}
-          aria-pressed={tab === 'rows'}
-          onClick={() => setTab('rows')}
-        >
-          Database rows
-        </button>
-        {tab === 'rows' && (
+        {!databasesOnly && (
+          <>
+            <button
+              type="button"
+              className={styles.button}
+              aria-pressed={tab === 'pages'}
+              onClick={() => setTab('pages')}
+            >
+              Pages
+            </button>
+            <button
+              type="button"
+              className={styles.button}
+              aria-pressed={tab === 'rows'}
+              onClick={() => setTab('rows')}
+            >
+              Database rows
+            </button>
+          </>
+        )}
+        {tab === 'rows' && !databasesOnly && (
           <select
             className={styles.select}
             aria-label="Database"
@@ -109,7 +123,7 @@ export function LinkPicker({
         )}
         <input
           className={styles.search}
-          aria-label="Search pages"
+          aria-label={databasesOnly ? 'Search databases' : 'Search pages'}
           placeholder="Search…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -123,8 +137,10 @@ export function LinkPicker({
           Close
         </button>
       </div>
-      {tab === 'pages' && <TargetList targets={filterTargets(pages, query)} onPick={onPick} />}
-      {tab === 'rows' && databaseId !== '' && (
+      {(databasesOnly || tab === 'pages') && (
+        <TargetList targets={filterTargets(listed, query)} onPick={onPick} />
+      )}
+      {!databasesOnly && tab === 'rows' && databaseId !== '' && (
         <RowTargets databaseId={databaseId} query={query} onPick={onPick} />
       )}
     </div>

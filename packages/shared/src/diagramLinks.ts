@@ -37,6 +37,10 @@ export const diagramLinkSchema = z.object({
   icon: z.string().nullable(),
   /** Value of the first status property when the page is a database row. */
   status: propertyOptionSchema.nullable(),
+  /** Active rows when the page is a database, else null. */
+  rowCount: z.number().int().nullable(),
+  /** Description when the page is a database, else null. */
+  description: z.string().nullable(),
 });
 
 export type DiagramLink = z.infer<typeof diagramLinkSchema>;

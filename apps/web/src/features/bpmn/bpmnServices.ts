@@ -29,9 +29,13 @@ interface ElementRegistry {
   get: (id: string) => DiagramElement | undefined;
 }
 
+/** Tasks link to any page or row; data stores link to a database. */
+export type LinkTargetKind = 'page' | 'database';
+
 export interface SelectedTask {
   elementId: string;
   pageId: string | null;
+  targetKind: LinkTargetKind;
 }
 
 /** bpmn-js moddle extension: lets every BPMN element carry `notiz:pageId`. */
@@ -58,6 +62,12 @@ export function isTask(element: Pick<DiagramElement, 'type'>): boolean {
   return /^bpmn:\w*Task$/.test(element.type);
 }
 
+/** What the element can link to, or null when it cannot be linked. */
+export function linkTargetKindOf(element: Pick<DiagramElement, 'type'>): LinkTargetKind | null {
+  if (isTask(element)) return 'page';
+  return element.type === 'bpmn:DataStoreReference' ? 'database' : null;
+}
+
 export function pageIdOf(element: DiagramElement): string | null {
   const value = element.businessObject.get(PAGE_ID_ATTRIBUTE);
   return typeof value === 'string' && value !== '' ? value : null;
@@ -67,11 +77,12 @@ export function fitViewport(modeler: Modeler): void {
   modeler.get<Canvas>('canvas').zoom('fit-viewport');
 }
 
-/** The single selected task, or null for no / several / non-task selections. */
+/** The single selected linkable element, or null for no / several / other selections. */
 export function selectedTaskOf(selection: readonly DiagramElement[]): SelectedTask | null {
   const [element] = selection;
-  if (selection.length !== 1 || !element || !isTask(element)) return null;
-  return { elementId: element.id, pageId: pageIdOf(element) };
+  const targetKind = element && selection.length === 1 ? linkTargetKindOf(element) : null;
+  if (!element || !targetKind) return null;
+  return { elementId: element.id, pageId: pageIdOf(element), targetKind };
 }
 
 export function findElement(modeler: Modeler, id: string): DiagramElement | undefined {

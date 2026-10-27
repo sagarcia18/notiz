@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import type { DatabaseDetail, DatabaseRow, PageDetail } from '@notiz/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { RouterProvider, createMemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,6 +34,7 @@ function page(id: string, title: string, extra: Partial<PageDetail>): PageDetail
     databaseId: null,
     properties: {},
     diagram: null,
+    description: null,
     ...extra,
   };
 }
@@ -66,7 +67,10 @@ const row: DatabaseRow = {
 };
 
 const responses: Record<string, unknown> = {
-  [`/api/pages/${databaseId}`]: page(databaseId, 'Test database', { kind: 'database' }),
+  [`/api/pages/${databaseId}`]: page(databaseId, 'Test database', {
+    kind: 'database',
+    description: 'All open work',
+  }),
   [`/api/pages/${rowId}`]: page(rowId, 'Row one', { parentId: databaseId, databaseId }),
   [`/api/databases/${databaseId}`]: database,
   [`/api/views/${viewId}/rows`]: [row],
@@ -142,5 +146,28 @@ describe('PageView', () => {
     const link = await screen.findByRole('link', { name: /Process/ });
     expect(link.getAttribute('href')).toBe(`/pages/${diagramId}`);
     expect(screen.getByRole('navigation', { name: 'Used in diagrams' })).toBeTruthy();
+  });
+
+  it('edits the description of a database under its title', async () => {
+    renderAt(`/pages/${databaseId}`);
+    const field = await screen.findByLabelText<HTMLTextAreaElement>('Database description');
+    expect(field.value).toBe('All open work');
+    fireEvent.change(field, { target: { value: 'Open work per floor' } });
+    fireEvent.blur(field);
+
+    const patches = (): unknown[] =>
+      vi
+        .mocked(fetch)
+        .mock.calls.filter(([, init]) => init?.method === 'PATCH')
+        .map(([, init]) => init?.body);
+    await waitFor(() =>
+      expect(patches()).toEqual([JSON.stringify({ description: 'Open work per floor' })]),
+    );
+  });
+
+  it('has no description field on normal pages', async () => {
+    renderAt(`/pages/${rowId}`);
+    await screen.findByText('← Back to database');
+    expect(screen.queryByLabelText('Database description')).toBeNull();
   });
 });

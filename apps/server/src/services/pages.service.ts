@@ -56,6 +56,7 @@ function toDetail(db: AppDatabase, row: PageRow): PageDetail {
     databaseId,
     properties: databaseId === null ? {} : parseValues(row.propertiesJson),
     diagram: row.kind === 'bpmn' ? (row.diagramXml ?? DEFAULT_BPMN_XML) : null,
+    description: row.kind === 'database' ? (row.description ?? '') : null,
   };
 }
 
@@ -147,6 +148,9 @@ export function updatePage(db: AppDatabase, id: string, input: UpdatePageInput):
       repo.updateSearchBody(db, id, extractBpmnText(diagram));
       linksRepo.replaceDiagramLinks(db, id, extractDiagramLinks(diagram));
     }
+    if (input.description !== undefined) {
+      repo.updateSearchBody(db, id, input.description);
+    }
     return toDetail(db, row);
   });
 }
@@ -161,13 +165,16 @@ function assertCanHaveSubpages(parentKind: PageKind | null): void {
   }
 }
 
-/** A diagram page has no block content, and only diagram pages take a diagram. */
+/** A diagram page has no block content; diagrams and descriptions fit one kind each. */
 function assertFitsKind(row: PageRow, input: UpdatePageInput): void {
   if (input.diagram !== undefined && row.kind !== 'bpmn') {
     throw new ValidationError('Only diagram pages have a diagram');
   }
   if (input.content !== undefined && row.kind === 'bpmn') {
     throw new ValidationError('Diagram pages have no block content');
+  }
+  if (input.description !== undefined && row.kind !== 'database') {
+    throw new ValidationError('Only databases have a description');
   }
 }
 

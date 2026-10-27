@@ -15,6 +15,7 @@ export const pages = sqliteTable(
     contentJson: text('content_json'),
     propertiesJson: text('properties_json'),
     diagramXml: text('diagram_xml'),
+    description: text('description'),
     isTemplate: integer('is_template', { mode: 'boolean' }).notNull().default(false),
     createdAt: text('created_at')
       .notNull()
