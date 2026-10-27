@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react';
 import { Link, Outlet } from 'react-router';
+import { NotionImport } from '../features/import/NotionImport';
 import { SidebarPages } from '../features/pages/SidebarPages';
 import { McpAccess } from '../features/settings/McpAccess';
 import styles from './AppLayout.module.css';
@@ -13,6 +14,7 @@ export function AppLayout(): ReactElement {
         </Link>
         <SidebarPages />
         <footer className={styles.sidebarFooter}>
+          <NotionImport />
           <McpAccess />
         </footer>
       </aside>
