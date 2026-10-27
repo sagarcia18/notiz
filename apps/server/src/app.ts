@@ -7,6 +7,7 @@ import { registerDatabaseRoutes } from './routes/databases.routes.js';
 import { registerDiagramRoutes } from './routes/diagrams.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 import { registerPageRoutes, registerTrashRoutes } from './routes/pages.routes.js';
+import { registerSearchRoutes } from './routes/search.routes.js';
 import { AttachmentFiles } from './storage/attachmentFiles.js';
 
 /** Page content can be large; uploads have their own limit. */
@@ -32,6 +33,7 @@ export function buildApp({ db, dataDir, logger = false }: BuildAppOptions): Fast
   registerDatabaseRoutes(app, db);
   registerDashboardRoutes(app, db);
   registerDiagramRoutes(app, db);
+  registerSearchRoutes(app, db);
   const files = new AttachmentFiles(dataDir);
   registerTrashRoutes(app, db, files);
   registerAttachmentRoutes(app, db, files);
