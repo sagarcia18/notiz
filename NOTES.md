@@ -9,6 +9,14 @@ Phase 3 (databases) done on branch `phase-3-databases` (branched from phase 2).
 Phase 4 (dashboards) done on branch `phase-4-dashboards` (branched from phase 3).
 Phase 5 (BPMN diagrams) done on branch `phase-5-bpmn` (branched from phase 4).
 Phase 6 (MCP server) done on branch `phase-6-mcp` (branched from phase 5).
+Phase 7 (Notion import + search UI) done on branch `phase-7-notion-import` (branched from phase 6).
+
+## Phase 7 - what was built
+
+- Decisions (approved): dependency `fflate` 0.8 (server) for unzipping; `multi_select` added; import in one step with type inference (no preview step). No migration.
+- `multi_select`: values are option-id lists; validation, conversion (to/from select, status, text), filters contains/not contains/empty, sort by first option, `MultiChoiceCell` editor, board card pills, MCP names. Tests: `propertyValues.test.ts`, `rowQuery.test.ts`, `databases.test.ts`, `MultiChoiceCell.test.tsx`.
+- Notion import: `POST /api/import/notion` for the "Markdown & CSV" zip (nested part zips too), pure parsers in `apps/server/src/import/`, `NotionImporter` writing through the existing services in one transaction under a new "Notion import <date time>" page; attachments on disk, removed again on failure. Type mapping and rules in `docs/ARCHITECTURE.md`. Web: "⇪ Import from Notion" in the sidebar footer -> `ImportDialog`. Tests: `notionParsing`, `notionMarkdown`, `notionInference`, `notionImport` (API end to end, rollback incl. files, invalid uploads), `ImportDialog.test.tsx`.
+- Search UI: sidebar "🔍 Search Ctrl K" + global Ctrl+K/Cmd+K palette (`features/search`): debounced `useSearch`, highlighted titles/snippets, database name for rows, ↑/↓/Enter/Esc, mouse. Tests: `SearchPalette.test.tsx` (keyboard, mouse, states, highlight), `SearchCommand.test.tsx` (shortcut, fetch, navigation to a row).
 
 ## Phase 6 - what was built
 
@@ -107,8 +115,13 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 - MCP: `text` input keeps inline formatting (bold, links) as plain text and replaces the whole document (no append/patch of single blocks). No tools yet for attachments, dashboards/widgets, views (create/edit filters), property edits/deletes, trash restore/purge, or reordering with before/after.
 - MCP switch: not yet tried by the user in the browser. "Last used" is reset when the API server restarts and refreshes every 30 s. The switch is a convenience, not a security boundary (a local program can skip the header). The in-app Claude assistant (chat panel via the Anthropic API) was planned and put on hold by the user to avoid API costs.
 - Database queries: filters are ANDed only (no OR/nesting), one database per query (no joins or relations), no grouping by date or checkbox; date filters compare `YYYY-MM-DD` strings.
-- Search: the API exists, the web search UI does not. Row property values are not searchable; pages created before Phase 2 get a body only on their next edit.
+- Search: row property values are not searchable; pages created before Phase 2 get a body only on their next edit. The palette has no "recent pages" list for an empty query and no search inside the current page.
+
+- Phase 7 not yet tested in the browser by the user (import with a real Notion export, multi-select editing, Ctrl+K inside the BlockNote editor, dark mode of the dialogs). Tested only with synthetic exports built in tests.
+- Import limits: the whole zip is held in memory (500 MB upload, 1 GB unpacked) and processed synchronously, so a very large export blocks the server while it runs; no progress bar beyond "Importing…". Notion's HTML export, page icons/covers, comments, inline databases' view settings (filters, sorts, board grouping), toggle headings, equations, synced blocks and column layouts are not imported as such (they come in as plain blocks or text). Type inference can guess wrong (e.g. a text column with repeated values becomes select); the type can be changed afterwards. Row pages are matched to CSV rows by title, so two rows with the same title may swap bodies. Subpages of rows are hidden from the sidebar. Notion's percent-encoded links with unusual characters may stay plain text. A failed import can leave empty `attachments/<pageId>` folders (files are removed).
+- Internal page links in imported content are `/pages/<id>` hrefs; how the editor opens them (same or new tab) is not checked yet.
+- `multi_select`: no grouping on boards or dashboards; option order is the stored order, values are sorted in option order when edited.
 
 ## Next step
 
-Still open from the project scope: search UI (the `GET /api/search` API is ready) and templates.
+Phase 8: Playwright E2E. Still open from the project scope: templates.

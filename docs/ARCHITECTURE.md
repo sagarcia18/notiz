@@ -15,6 +15,7 @@ Personal, single-user, local-first Notion replacement. Runs on Windows; all data
 | Server   | Fastify 5, better-sqlite3, Drizzle ORM + drizzle-kit migrations, Zod 4 | Synchronous SQLite is fast and simple for a single user.            |
 | Search   | SQLite FTS5                                                            | Built into SQLite; no extra service.                                |
 | Claude   | MCP server (`packages/mcp`, Phase 6) calling the REST API              | The API stays the only way to change data.                          |
+| Import   | fflate (Phase 7)                                                       | Small, dependency-free unzip for Notion exports.                    |
 | Quality  | Vitest, Playwright (Phase 8), ESLint (type-aware), Prettier, Husky     |                                                                     |
 
 pnpm is installed per user via `corepack enable --install-directory %USERPROFILE%\.local\bin pnpm` (no admin rights needed).
@@ -34,6 +35,8 @@ apps/
       routes/           HTTP only: Zod validation + mapping
       services/         business logic, throws DomainError
       repositories/     the only code that touches SQL
+      storage/          attachment files on disk
+      import/           pure Notion export parsing (zip, CSV, Markdown, type inference)
     test/               Vitest API + migration tests (in-memory SQLite)
   web/
     src/
@@ -93,14 +96,14 @@ Files are written to disk first and the row is inserted afterwards; a failed or 
 
 ### db_properties (Phase 3)
 
-| Column         | Notes                                                                                                  |
-| -------------- | ------------------------------------------------------------------------------------------------------ |
-| `id`           | PK                                                                                                     |
-| `database_id`  | FK -> pages.id (a page of kind `database`)                                                             |
-| `name`         |                                                                                                        |
-| `type`         | `title` \| `text` \| `number` \| `select` \| `status` \| `date` \| `checkbox` \| `url`                 |
-| `options_json` | Choices `{ id, name, color, group? }`; `group` (`todo` \| `in_progress` \| `complete`) only for status |
-| `sort_order`   | Fractional key; creation order of the properties                                                       |
+| Column         | Notes                                                                                                    |
+| -------------- | -------------------------------------------------------------------------------------------------------- |
+| `id`           | PK                                                                                                       |
+| `database_id`  | FK -> pages.id (a page of kind `database`)                                                               |
+| `name`         |                                                                                                          |
+| `type`         | `title` \| `text` \| `number` \| `select` \| `multi_select` \| `status` \| `date` \| `checkbox` \| `url` |
+| `options_json` | Choices `{ id, name, color, group? }`; `group` (`todo` \| `in_progress` \| `complete`) only for status   |
+| `sort_order`   | Fractional key; creation order of the properties                                                         |
 
 ### db_views (Phase 3)
 
@@ -117,7 +120,7 @@ Files are written to disk first and the row is inserted afterwards; a failed or 
 
 - A new database page gets one `title` property ("Name") and one table view ("Table"). Each database has exactly one title property; it cannot be retyped or deleted, and its value is the row page's `title` (so search and the page header keep working).
 - **Description:** a database page has a plain-text `description` (max 2000 chars, `PATCH { description }`, rejected with 400 on other kinds). `PageDetail.description` is `''` for databases without one and `null` for other kinds. Saving it rewrites `pages_fts.body` (databases have no block content). Edited in a text box under the database title.
-- **Rows** are pages (kind `doc`) whose parent is the database page. Their other values live in `properties_json`, keyed by property id: strings for text/url, numbers, booleans, option ids for select/status, `YYYY-MM-DD` for dates. Values are validated against the property type on every write (`isValidPropertyValue`); `PATCH /api/pages/:id { properties }` merges, `null` removes a value. `PageDetail` carries `databaseId` and `properties` for rows.
+- **Rows** are pages (kind `doc`) whose parent is the database page. Their other values live in `properties_json`, keyed by property id: strings for text/url, numbers, booleans, option ids for select/status, a list of distinct option ids for `multi_select` (Phase 7; an empty list counts as empty), `YYYY-MM-DD` for dates. Values are validated against the property type on every write (`isValidPropertyValue`); `PATCH /api/pages/:id { properties }` merges, `null` removes a value. `PageDetail` carries `databaseId` and `properties` for rows.
 - Rows are hidden from the sidebar tree. Pages cannot be created in or moved into a database except through `POST /api/databases/:id/rows`; reordering rows inside their database uses the normal move endpoint.
 - **Schema changes rewrite data in the same transaction** (rows in the trash included): deleting a property removes its values and its references in view configs; changing the type converts values with `convertPropertyValue` (options become their names and back, numbers/dates are parsed from text, anything else is cleared) and drops filters/grouping on it; removing an option clears the values that used it.
 - **Querying:** `GET /api/views/:id/rows` loads the active rows and applies the view's filters (all must match; filters on missing properties or with operators unfit for the type are skipped) and sorts in TypeScript (`services/rowQuery.ts`). Empty values sort last; ties and views without sorts keep the manual `sort_order`. Board grouping is done in the web app from these rows.
@@ -168,49 +171,69 @@ Derived index of the `notiz:pageId` attributes in `pages.diagram_xml`; the XML s
 - **Backlinks:** every diagram save rewrites that diagram's `diagram_links` rows in the same transaction as the page and `pages_fts`; purging a diagram deletes its rows; trashed diagrams are filtered out on read. The server rebuilds the whole table from the stored XML on start (`rebuildDiagramLinks`, idempotent), which also backfills diagrams saved before the table existed. `GET /api/pages/:id/diagram-usages` lists the active diagrams linking to a page, once each, ordered by title; the web shows them as "Used in diagrams" under the page header. The badges endpoint still parses the XML.
 - Web: the toolbar offers "Link page…" while one task is selected (`LinkPicker`: pages from the tree without the diagram itself, or rows of a chosen database's first view; "Remove link"). Links are set with `modeling.updateProperties`, so they autosave and undo like any edit. `LinkBadge`s are rendered with portals into detached hosts that bpmn-js places as overlays below the tasks; the links query is refetched after every diagram save and on window focus.
 
-`multi_select` and other Notion types are decided in Phase 7. Notion "person" properties (e.g. Assignee) have no equivalent in a single-user app and are skipped on import.
+### multi_select (Phase 7)
+
+No migration: `db_properties.type` is plain text. Options live in `options_json` like select (`hasOptions(type)` in shared). Values are id lists; text conversion joins option names with `, ` and splits on commas the other way; select/status <-> multi_select keeps the ids that still exist (to select: the first). Filters: `contains` / `not_contains` (value = option id), `is_empty` / `is_not_empty`; sorting uses the first chosen option in option order. Boards and dashboards do not group by multi-select. Web: `MultiChoiceCell` (pills + checkbox popover), board cards show all pills; MCP returns option names as a list.
+
+### Notion import (Phase 7)
+
+`POST /api/import/notion` (multipart, field `file`, max 500 MB) takes Notion's "Markdown & CSV" export zip. `import.routes` -> `notionImport.service` -> `NotionImporter`, which only calls the existing page, database, row and attachment services, so validation, FTS and sort keys work as for normal edits. Pure parsing lives in `apps/server/src/import/`:
+
+- `zipEntries` (fflate): unpacks into memory, also nested `Part-N.zip` files, capped at 1 GB unpacked; `__MACOSX` ignored.
+- `exportTree`: `Page <id>.md` is a page, `Page <id>/` holds its subpages and files; `Db <id>.csv` is a database (prefers `Db <id>_all.csv`, which has all rows, over the view CSV), `Db <id>/` holds the row pages, matched to CSV rows by title. The `# Title` line and, for rows, the `Name: value` property lines are dropped from the body. Folders without a page (e.g. the export's top folder) are skipped. Children are ordered as the parent links them, then by title.
+- `markdownBlocks` / `inlineMarkdown`: headings (h4+ -> h3), paragraphs, nested bullet/numbered/check lists, quotes, code blocks, dividers, tables, callouts (`<aside>`, inner blocks kept), bold/italic/strike/code, links. Links to exported pages/databases become `/pages/<id>`; local images and files become `image`/`file` blocks backed by attachments (stored once per page, max 50 MB each, larger ones skipped with a warning); external links and images stay as they are; links to files outside the export become plain text.
+- `propertyInference`: CSV has no types, so they are inferred from the values: first column = title; all `Yes`/`No` -> checkbox; numbers (also `1,200`, `$5`, `50%`) -> number; Notion dates (`October 27, 2026`, `2026/10/27`, `10/27/2026`, with time or `→` range: start day) -> date; all `http(s)` -> url; a column named Status -> status with groups guessed from option names (done/complete -> complete, not started/to do/backlog -> todo, progress/review/... -> in_progress, else todo); comma lists with repeated parts -> multi_select; up to 25 short repeated values -> select; else text. Person columns (Assignee, Owner, Created by, ...) are skipped. Relations (`Title (path.md)`) become text with the titles; formulas and rollups are imported as their exported values (number or text), not recomputed. Each skip/simplification is returned as a warning.
+
+Everything goes under one new top-level page "Notion import YYYY-MM-DD HH:MM" in one SQLite transaction; nothing existing is touched. Attachment bytes are written synchronously inside the transaction (`storeAttachmentBytes`, `AttachmentFiles.writeBytesSync`); every written path is collected and removed again if the transaction fails. Answer: `{ rootPageId, pages, databases, rows, attachments, warnings }`. Subpages of database rows are imported as children of the row page (hidden from the sidebar like the row; reachable through the row's links). Web: `features/import` - sidebar footer entry "Import from Notion" -> `ImportDialog` (file picker, progress, summary with notes, "Open imported pages").
+
+### Search UI (Phase 7)
+
+`features/search`: sidebar entry "🔍 Search Ctrl K" and a global Ctrl+K / Cmd+K listener (capture phase, so it also works inside the editor; it toggles) open `SearchPalette`. `useSearch` debounces 150 ms and calls `GET /api/search?q=&limit=20` with TanStack Query (`keepPreviousData`). Results show icon, title, the database a row belongs to (from the page tree) and the snippet, with query words highlighted client-side (`highlightParts`, prefix match like the server). Keyboard: ↑/↓ (wrapping), Enter opens `/pages/:id` (pages and database rows alike), Esc or a click outside closes. ARIA combobox + listbox with `aria-activedescendant`.
+
+Notion "person" properties (e.g. Assignee) have no equivalent in a single-user app and are skipped on import.
 
 ## API overview
 
 All endpoints live under `/api`. Request/response schemas come from `packages/shared`. Errors always use `{ error: { code, message } }` with codes `not_found` (404), `validation_failed` (400), `conflict` (409), `mcp_disabled` (403), `internal` (500).
 
-| Method | Path                            | Phase | Purpose                                                                      |
-| ------ | ------------------------------- | ----- | ---------------------------------------------------------------------------- |
-| GET    | `/api/health`                   | 0     | Server + database liveness                                                   |
-| GET    | `/api/pages/tree`               | 1     | Nested tree of active, non-template pages                                    |
-| POST   | `/api/pages`                    | 1     | Create `{ parentId?, title?, kind? }` as last child (201)                    |
-| GET    | `/api/pages/:id`                | 1     | Page detail                                                                  |
-| PATCH  | `/api/pages/:id`                | 1-5   | Update `{ title?, icon?, content?, diagram?, description? }`                 |
-| POST   | `/api/pages/:id/move`           | 1     | Move `{ parentId, beforeId? \| afterId? }`; 409 on cycles or foreign anchors |
-| DELETE | `/api/pages/:id`                | 1     | Move page + subtree to trash (204)                                           |
-| GET    | `/api/trash`                    | 1     | Trash roots, newest first                                                    |
-| POST   | `/api/trash/:id/restore`        | 1     | Restore page + subtree trashed with it                                       |
-| DELETE | `/api/trash/:id`                | 1     | Delete page + subtree forever (204)                                          |
-| DELETE | `/api/trash`                    | 1     | Empty trash (204)                                                            |
-| POST   | `/api/pages/:id/attachments`    | 2     | Upload one file (multipart, field `file`, max 50 MB) (201)                   |
-| GET    | `/api/attachments/:id`          | 2     | Download / display an attachment                                             |
-| GET    | `/api/databases/:id`            | 3     | Properties and views of a database                                           |
-| POST   | `/api/databases/:id/properties` | 3     | Add property `{ name, type, options? }` (201)                                |
-| PATCH  | `/api/properties/:id`           | 3     | Rename, retype or change options (converts row values)                       |
-| DELETE | `/api/properties/:id`           | 3     | Delete property and its values (204); not the title                          |
-| POST   | `/api/databases/:id/views`      | 3     | Add view `{ type, name? }` (201)                                             |
-| PATCH  | `/api/views/:id`                | 3     | Update `{ name?, config? }`                                                  |
-| DELETE | `/api/views/:id`                | 3     | Delete view (204); 409 for the last one                                      |
-| GET    | `/api/views/:id/rows`           | 3     | Rows filtered and sorted by the view                                         |
-| POST   | `/api/databases/:id/rows`       | 3     | Create row `{ title?, properties? }` as last row (201)                       |
-| GET    | `/api/dashboards/:id`           | 4     | Widgets of a dashboard                                                       |
-| POST   | `/api/dashboards/:id/widgets`   | 4     | Add widget `{ config, layout? }` (201)                                       |
-| PUT    | `/api/dashboards/:id/layout`    | 4     | Save positions `{ items: [{ id, layout }] }`; returns the dashboard          |
-| PATCH  | `/api/widgets/:id`              | 4     | Update `{ config?, layout? }`                                                |
-| DELETE | `/api/widgets/:id`              | 4     | Delete widget (204)                                                          |
-| GET    | `/api/widgets/:id/data`         | 4     | Aggregated `{ state, total, buckets }`                                       |
-| GET    | `/api/pages/:id/diagram-links`  | 5     | Pages linked from a diagram's tasks, with state and row status               |
-| GET    | `/api/pages/:id/diagram-usages` | 5     | Active diagrams that link to the page (backlinks)                            |
-| GET    | `/api/search?q=&limit=`         | 6     | Full-text search, best rank first (limit 1-50, default 20)                   |
-| POST   | `/api/databases/:id/query`      | 6     | Ad-hoc `{ filters?, sorts?, limit?, offset? }` -> `{ total, rows }`          |
-| GET    | `/api/settings`                 | 6     | `{ mcpEnabled, mcpLastUsedAt }`                                              |
-| PATCH  | `/api/settings`                 | 6     | Update `{ mcpEnabled }`                                                      |
-| POST   | `/api/databases/:id/aggregate`  | 6     | `{ filters?, metric?, metricPropertyId?, groupByPropertyId?, ... }` -> total |
+| Method | Path                            | Phase | Purpose                                                                        |
+| ------ | ------------------------------- | ----- | ------------------------------------------------------------------------------ |
+| GET    | `/api/health`                   | 0     | Server + database liveness                                                     |
+| GET    | `/api/pages/tree`               | 1     | Nested tree of active, non-template pages                                      |
+| POST   | `/api/pages`                    | 1     | Create `{ parentId?, title?, kind? }` as last child (201)                      |
+| GET    | `/api/pages/:id`                | 1     | Page detail                                                                    |
+| PATCH  | `/api/pages/:id`                | 1-5   | Update `{ title?, icon?, content?, diagram?, description? }`                   |
+| POST   | `/api/pages/:id/move`           | 1     | Move `{ parentId, beforeId? \| afterId? }`; 409 on cycles or foreign anchors   |
+| DELETE | `/api/pages/:id`                | 1     | Move page + subtree to trash (204)                                             |
+| GET    | `/api/trash`                    | 1     | Trash roots, newest first                                                      |
+| POST   | `/api/trash/:id/restore`        | 1     | Restore page + subtree trashed with it                                         |
+| DELETE | `/api/trash/:id`                | 1     | Delete page + subtree forever (204)                                            |
+| DELETE | `/api/trash`                    | 1     | Empty trash (204)                                                              |
+| POST   | `/api/pages/:id/attachments`    | 2     | Upload one file (multipart, field `file`, max 50 MB) (201)                     |
+| GET    | `/api/attachments/:id`          | 2     | Download / display an attachment                                               |
+| GET    | `/api/databases/:id`            | 3     | Properties and views of a database                                             |
+| POST   | `/api/databases/:id/properties` | 3     | Add property `{ name, type, options? }` (201)                                  |
+| PATCH  | `/api/properties/:id`           | 3     | Rename, retype or change options (converts row values)                         |
+| DELETE | `/api/properties/:id`           | 3     | Delete property and its values (204); not the title                            |
+| POST   | `/api/databases/:id/views`      | 3     | Add view `{ type, name? }` (201)                                               |
+| PATCH  | `/api/views/:id`                | 3     | Update `{ name?, config? }`                                                    |
+| DELETE | `/api/views/:id`                | 3     | Delete view (204); 409 for the last one                                        |
+| GET    | `/api/views/:id/rows`           | 3     | Rows filtered and sorted by the view                                           |
+| POST   | `/api/databases/:id/rows`       | 3     | Create row `{ title?, properties? }` as last row (201)                         |
+| GET    | `/api/dashboards/:id`           | 4     | Widgets of a dashboard                                                         |
+| POST   | `/api/dashboards/:id/widgets`   | 4     | Add widget `{ config, layout? }` (201)                                         |
+| PUT    | `/api/dashboards/:id/layout`    | 4     | Save positions `{ items: [{ id, layout }] }`; returns the dashboard            |
+| PATCH  | `/api/widgets/:id`              | 4     | Update `{ config?, layout? }`                                                  |
+| DELETE | `/api/widgets/:id`              | 4     | Delete widget (204)                                                            |
+| GET    | `/api/widgets/:id/data`         | 4     | Aggregated `{ state, total, buckets }`                                         |
+| GET    | `/api/pages/:id/diagram-links`  | 5     | Pages linked from a diagram's tasks, with state and row status                 |
+| GET    | `/api/pages/:id/diagram-usages` | 5     | Active diagrams that link to the page (backlinks)                              |
+| GET    | `/api/search?q=&limit=`         | 6     | Full-text search, best rank first (limit 1-50, default 20)                     |
+| POST   | `/api/databases/:id/query`      | 6     | Ad-hoc `{ filters?, sorts?, limit?, offset? }` -> `{ total, rows }`            |
+| GET    | `/api/settings`                 | 6     | `{ mcpEnabled, mcpLastUsedAt }`                                                |
+| PATCH  | `/api/settings`                 | 6     | Update `{ mcpEnabled }`                                                        |
+| POST   | `/api/databases/:id/aggregate`  | 6     | `{ filters?, metric?, metricPropertyId?, groupByPropertyId?, ... }` -> total   |
+| POST   | `/api/import/notion`            | 7     | Import a Notion "Markdown & CSV" zip (multipart `file`) under a new page (201) |
 
 `PATCH /api/pages/:id` also accepts `properties` for database rows (Phase 3). Templates come later.
 
