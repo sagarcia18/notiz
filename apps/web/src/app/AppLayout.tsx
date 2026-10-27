@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { Link, Outlet } from 'react-router';
 import { NotionImport } from '../features/import/NotionImport';
 import { SidebarPages } from '../features/pages/SidebarPages';
+import { SearchCommand } from '../features/search/SearchCommand';
 import { McpAccess } from '../features/settings/McpAccess';
 import styles from './AppLayout.module.css';
 
@@ -12,6 +13,7 @@ export function AppLayout(): ReactElement {
         <Link to="/" className={styles.brand}>
           Notiz
         </Link>
+        <SearchCommand />
         <SidebarPages />
         <footer className={styles.sidebarFooter}>
           <NotionImport />
