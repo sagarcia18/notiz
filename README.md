@@ -29,3 +29,14 @@ copy .env.example .env
 | `pnpm test`       | Tests only                                               |
 | `pnpm db:migrate` | Apply migrations to `DATA_DIR/notiz.db`                  |
 | `pnpm format`     | Format all files with Prettier                           |
+
+## Open Notiz on your phone (Tailscale)
+
+Notiz has no login, so it only listens on this computer by default. To use it from your phone, put both devices in a private [Tailscale](https://tailscale.com) network and let the web dev server listen on this computer's Tailscale address:
+
+1. Install Tailscale on this computer and the phone and sign in to the same account.
+2. Find this computer's Tailscale IP (`tailscale ip -4`, it starts with `100.`).
+3. Add `WEB_HOST=<that IP>` to the repo `.env` and restart `pnpm dev`. Allow Node.js through the Windows firewall if asked.
+4. On the phone open `http://<that IP>:5173`.
+
+The API server stays on `127.0.0.1`; the phone reaches it through the web server's `/api` proxy. Never set `WEB_HOST` to `0.0.0.0` on a network you do not trust: everyone who can reach the port can read and change all data.

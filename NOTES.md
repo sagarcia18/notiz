@@ -84,6 +84,7 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 
 ## Open points
 
+- Phone access (user request): opt-in `WEB_HOST` in the repo `.env` makes the Vite dev server listen on that address (meant for the Tailscale IP); the API stays on 127.0.0.1 behind the `/api` proxy. Vite now reads the repo `.env` (`loadEnv`), so `API_PORT` from `.env` reaches the proxy too. No login: anyone who can reach the port has full access. The layout is not made for phones yet. Setup steps in `README.md`; test: `apps/web/devServer.test.ts`.
 - TypeScript is pinned to `~6.0.3` because typescript-eslint does not support TS 7 yet.
 - pnpm lives in `%USERPROFILE%\.local\bin` (corepack shim), not in Program Files.
 - Phase 1 UI not yet tested in the browser by the user. Sidebar expand state is in memory only (lost on reload). Drag-and-drop has no keyboard alternative yet.
