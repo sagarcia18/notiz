@@ -96,14 +96,15 @@ Files are written to disk first and the row is inserted afterwards; a failed or 
 
 ### db_properties (Phase 3)
 
-| Column         | Notes                                                                                                    |
-| -------------- | -------------------------------------------------------------------------------------------------------- |
-| `id`           | PK                                                                                                       |
-| `database_id`  | FK -> pages.id (a page of kind `database`)                                                               |
-| `name`         |                                                                                                          |
-| `type`         | `title` \| `text` \| `number` \| `select` \| `multi_select` \| `status` \| `date` \| `checkbox` \| `url` |
-| `options_json` | Choices `{ id, name, color, group? }`; `group` (`todo` \| `in_progress` \| `complete`) only for status   |
-| `sort_order`   | Fractional key; creation order of the properties                                                         |
+| Column         | Notes                                                                                                                  |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `id`           | PK                                                                                                                     |
+| `database_id`  | FK -> pages.id (a page of kind `database`)                                                                             |
+| `name`         |                                                                                                                        |
+| `type`         | `title` \| `text` \| `number` \| `select` \| `multi_select` \| `status` \| `date` \| `checkbox` \| `url` \| `relation` |
+| `options_json` | Choices `{ id, name, color, group? }`; `group` (`todo` \| `in_progress` \| `complete`) only for status                 |
+| `config_json`  | Type settings (migration `0009_property_config`): `{ relationDatabaseId }` for relations, else `{}`                    |
+| `sort_order`   | Fractional key; creation order of the properties                                                                       |
 
 ### db_views (Phase 3)
 
@@ -174,6 +175,14 @@ Derived index of the `notiz:pageId` attributes in `pages.diagram_xml`; the XML s
 ### multi_select (Phase 7)
 
 No migration: `db_properties.type` is plain text. Options live in `options_json` like select (`hasOptions(type)` in shared). Values are id lists; text conversion joins option names with `, ` and splits on commas the other way; select/status <-> multi_select keeps the ids that still exist (to select: the first). Filters: `contains` / `not_contains` (value = option id), `is_empty` / `is_not_empty`; sorting uses the first chosen option in option order. Boards and dashboards do not group by multi-select. Web: `MultiChoiceCell` (pills + checkbox popover), board cards show all pills; MCP returns option names as a list.
+
+### relation (Phase 7)
+
+- A `relation` property links rows to rows of a **target database** (`DatabaseProperty.relationDatabaseId`, stored in `db_properties.config_json`; may be the same database). Create and type changes to `relation` require `relationDatabaseId`, which must be an active database (400 without, 404 for a non-database). One-way: the target gets no reverse column.
+- Values are lists of distinct row ids (`isValidPropertyValue` checks the shape). `mergeRowValues` also requires every **new** id to be an active row of the target; ids already stored may stay, so a row trashed later never blocks saving. The web cell hides rows it does not list and drops them on the next toggle.
+- Changing the type to or from `relation` clears the values (`convertPropertyValue` returns null); changing the target clears them too and removes the property's filters. Relation values have no plain text (`valueToText` is `''`), so sorting by a relation is a no-op and they are not in search.
+- Filters: `contains` / `not_contains` (value = row id), `is_empty` / `is_not_empty`. Boards and dashboards do not group by relations. Notion imports never create relations (they stay text); the MCP server returns relation values as row ids.
+- Web: `PropertyMenu` shows a database picker (`RelationTargetSelect`) and sends the type change only once a database is chosen; `RelationCell` shows the linked titles and a popover with search, checkboxes and ↗ links; titles come from `POST /api/databases/:id/query` (first 500 rows), cached under the target's `['databases', id]` key.
 
 ### Notion import (Phase 7)
 
