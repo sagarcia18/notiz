@@ -7,6 +7,7 @@ export default defineConfig({
       { test: { name: 'shared', root: './packages/shared', environment: 'node' } },
       { test: { name: 'server', root: './apps/server', environment: 'node' } },
       { test: { name: 'web', root: './apps/web', environment: 'node' } },
+      { test: { name: 'mcp', root: './packages/mcp', environment: 'node' } },
     ],
   },
 });
