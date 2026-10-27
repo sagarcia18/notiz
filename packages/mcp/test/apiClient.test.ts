@@ -84,7 +84,8 @@ describe('loadMcpConfig', () => {
     expect(loadMcpConfig({ NOTIZ_API_URL: 'http://127.0.0.1:9000' }).apiUrl).toBe(
       'http://127.0.0.1:9000',
     );
-    expect(loadMcpConfig({ PORT: '4000' }).apiUrl).toBe('http://localhost:4000');
-    expect(loadMcpConfig({}).apiUrl).toBe('http://localhost:3001');
+    expect(loadMcpConfig({ API_PORT: '4000' }).apiUrl).toBe('http://127.0.0.1:4000');
+    expect(loadMcpConfig({ PORT: '5173' }).apiUrl).toBe('http://127.0.0.1:3001');
+    expect(loadMcpConfig({}).apiUrl).toBe('http://127.0.0.1:3001');
   });
 });

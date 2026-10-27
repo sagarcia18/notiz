@@ -29,7 +29,7 @@ Claude Desktop (`claude_desktop_config.json`):
 }
 ```
 
-The server reads `NOTIZ_API_URL`, else `PORT` from the repo `.env` (default `http://localhost:3001`). If the API runs on another port, set it explicitly: `claude mcp add notiz -e NOTIZ_API_URL=http://127.0.0.1:5173 -- pnpm ...`, or `"env": { "NOTIZ_API_URL": "http://127.0.0.1:5173" }` in the Desktop config. The API server binds `127.0.0.1`, so prefer that over `localhost`. When the app is started from the Claude desktop preview, `PORT` is set by the launcher (e.g. 5173), and the API then listens there instead of 3001.
+The server reads `NOTIZ_API_URL`, else `API_PORT` from the repo `.env` (default `http://127.0.0.1:3001`, the same default as the API server). To point it elsewhere: `claude mcp add notiz -e NOTIZ_API_URL=http://127.0.0.1:4100 -- pnpm ...`, or `"env": { "NOTIZ_API_URL": "..." }` in the Desktop config.
 
 ## Tools
 

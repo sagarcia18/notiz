@@ -26,7 +26,7 @@ apps/
   server/
     drizzle/            SQL migrations (generated + custom), never edited after commit
     src/
-      config.ts         env -> AppConfig (DATA_DIR, PORT)
+      config.ts         env -> AppConfig (DATA_DIR, API_PORT)
       app.ts            buildApp(): Fastify instance, error handler, routes
       index.ts          process entry: migrate, listen
       errors.ts         DomainError subclasses + central HTTP error handler
@@ -212,7 +212,7 @@ All endpoints live under `/api`. Request/response schemas come from `packages/sh
 
 ## MCP server (Phase 6)
 
-`packages/mcp` is a stdio MCP server (`@modelcontextprotocol/sdk`) started by Claude Desktop / Claude Code (`pnpm --filter @notiz/mcp start`, setup in `packages/mcp/README.md`). It never opens the SQLite file: every tool calls the REST API through `NotizApi` (`fetch` + shared Zod schemas), so routes -> services -> repositories stay the only data path and the Notiz server must be running. The address is `NOTIZ_API_URL`, else `http://localhost:$PORT` (default 3001).
+`packages/mcp` is a stdio MCP server (`@modelcontextprotocol/sdk`) started by Claude Desktop / Claude Code (`pnpm --filter @notiz/mcp start`, setup in `packages/mcp/README.md`). It never opens the SQLite file: every tool calls the REST API through `NotizApi` (`fetch` + shared Zod schemas), so routes -> services -> repositories stay the only data path and the Notiz server must be running. The address is `NOTIZ_API_URL`, else `http://127.0.0.1:$API_PORT` (default 3001).
 
 - Tools: `list_page_tree`, `get_page`, `search_pages`, `create_page`, `update_page`, `move_page`, `trash_page` (`tools/pages.tools.ts`); `get_database`, `list_database_rows`, `create_database_row`, `update_database_row`, `add_database_property` (`tools/databases.tools.ts`); `get_diagram_links`, `get_diagram_usages` (`tools/diagrams.tools.ts`).
 - Documents: `get_page` adds a plain-text `text` next to the BlockNote `content`; `create_page` / `update_page` accept either `content` (BlockNote blocks) or `text`, which `textToBlocks` turns into headings, list, checklist and paragraph blocks. Both replace the whole document.
@@ -225,5 +225,5 @@ All endpoints live under `/api`. Request/response schemas come from `packages/sh
 - **Migrations:** drizzle-kit generates SQL from `src/db/schema.ts`; things Drizzle cannot express (FTS5) go into `drizzle-kit generate --custom` migrations. Migrations run on server start and via `pnpm db:migrate`.
 - **Shared package as TS source:** `@notiz/shared` exports `.ts` directly; Vite and tsx compile it, so no build step.
 - **Server runs with tsx** in dev; a production build is not needed for a local app.
-- **Dev proxy:** Vite forwards `/api` to Fastify (127.0.0.1:3001), so the browser sees one origin and no CORS setup is needed.
+- **Dev proxy:** Vite forwards `/api` to Fastify (127.0.0.1:`API_PORT`, default 3001), so the browser sees one origin and no CORS setup is needed. The API deliberately ignores `PORT`: launchers such as the Claude desktop preview set it for the web server, and the API would otherwise bind the same port.
 - **SQLite pragmas:** WAL journal, foreign keys on.

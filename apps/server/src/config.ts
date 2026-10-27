@@ -6,7 +6,8 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../
 
 const envSchema = z.object({
   DATA_DIR: z.string().min(1).default('./data'),
-  PORT: z.coerce.number().int().positive().default(3001),
+  /** Not PORT: dev launchers set PORT for the web server, which would move the API onto it. */
+  API_PORT: z.coerce.number().int().positive().default(3001),
 });
 
 export interface AppConfig {
@@ -23,6 +24,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     dataDir,
     databaseFile: path.join(dataDir, 'notiz.db'),
     attachmentsDir: path.join(dataDir, 'attachments'),
-    port: parsed.PORT,
+    port: parsed.API_PORT,
   };
 }
