@@ -21,12 +21,10 @@ export function PageView(): ReactElement {
     return <p className={styles.error}>{page.error.message}</p>;
   }
   return (
-    <article>
-      <PageHeader
-        key={page.data.id}
-        page={page.data}
-        onSave={(input) => updatePage.mutate(input)}
-      />
+    // Keyed by page so header, panels and editor all start fresh on navigation.
+    // Sibling keys must stay unique: equal keys made React leave old headers on screen.
+    <article key={page.data.id}>
+      <PageHeader page={page.data} onSave={(input) => updatePage.mutate(input)} />
       {updatePage.error && <p className={styles.error}>{updatePage.error.message}</p>}
       {page.data.databaseId !== null && (
         <RowProperties
@@ -36,10 +34,10 @@ export function PageView(): ReactElement {
         />
       )}
       {page.data.kind === 'database' ? (
-        <DatabaseView key={page.data.id} databaseId={page.data.id} />
+        <DatabaseView databaseId={page.data.id} />
       ) : (
         <Suspense fallback={<p className={styles.muted}>Loading editor…</p>}>
-          <PageBody key={page.data.id} pageId={page.data.id} initialContent={page.data.content} />
+          <PageBody pageId={page.data.id} initialContent={page.data.content} />
         </Suspense>
       )}
     </article>

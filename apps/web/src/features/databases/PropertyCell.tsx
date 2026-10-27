@@ -1,5 +1,6 @@
 import type { DatabaseProperty, PropertyValue } from '@notiz/shared';
-import { type KeyboardEvent, type ReactElement, useState } from 'react';
+import { type ReactElement, useState } from 'react';
+import { blurOnEnter } from './blurOnEnter';
 import { OptionPill } from './OptionPill';
 import styles from './PropertyCell.module.css';
 
@@ -7,12 +8,6 @@ interface PropertyCellProps {
   property: DatabaseProperty;
   value: PropertyValue | undefined;
   onChange: (value: PropertyValue) => void;
-}
-
-function blurOnEnter(event: KeyboardEvent<HTMLInputElement>): void {
-  if (event.key === 'Enter') {
-    event.currentTarget.blur();
-  }
 }
 
 interface TextCellProps {

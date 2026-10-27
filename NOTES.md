@@ -54,7 +54,8 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 - Saving sends the whole document each time; fine for normal pages, revisit if very large pages feel slow.
 - The lazy editor chunk is ~960 kB (Vite size warning); acceptable for a local app.
 - Search UI is not built yet; `pages_fts.body` is filled from now on (pages created earlier get a body on their next edit).
-- Phase 3 UI not yet tested in the browser by the user (table editing, property menu, filters/sorts, board drag-and-drop, row page panel, dark mode).
+- Phase 3 browser feedback fixed: leftover page headers after "Open" (duplicate React keys in `PageView`; the article is now keyed by page id), Enter saves property/option names, property and toolbar popovers are fixed-positioned so the table no longer clips them. The header bug has no regression test: web tests run without a DOM; component tests need `jsdom` + `@testing-library/react` (not added, needs approval).
+- Phase 3 UI otherwise not yet fully tested in the browser by the user (table editing, property menu, filters/sorts, board drag-and-drop, row page panel, dark mode).
 - Databases: the selected view tab is not remembered across reloads; no row peek/side panel (rows open as full pages); no date ranges/times, `multi_select`, number formats, formulas or relations (Phase 7). Property values are not part of full-text search.
 - Board drop sends two requests (value, then position) without a transaction; table and board updates are not optimistic (they refetch after the server answers). Columns are reordered with Move ←/→ in the property menu, not by dragging.
 - A row restored from the trash after its database was deleted moves to the top level as a normal page; its old `properties_json` stays but is no longer shown.

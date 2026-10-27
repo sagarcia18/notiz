@@ -6,6 +6,7 @@ import {
   statusGroupSchema,
 } from '@notiz/shared';
 import { type ReactElement, useState } from 'react';
+import { blurOnEnter } from './blurOnEnter';
 import styles from './Database.module.css';
 import { OptionPill } from './OptionPill';
 
@@ -46,6 +47,7 @@ export function OptionsEditor({ options, withGroups, onChange }: OptionsEditorPr
             className={`${styles.input} ${styles.grow}`}
             aria-label="Option name"
             defaultValue={option.name}
+            onKeyDown={blurOnEnter}
             onBlur={(event) => {
               const name = event.target.value.trim();
               if (name !== '' && name !== option.name) replace(index, { name });

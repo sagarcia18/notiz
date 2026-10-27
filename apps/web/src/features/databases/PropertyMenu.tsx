@@ -5,6 +5,7 @@ import {
   propertyTypeSchema,
 } from '@notiz/shared';
 import type { ReactElement } from 'react';
+import { blurOnEnter } from './blurOnEnter';
 import styles from './Database.module.css';
 import { OptionsEditor } from './OptionsEditor';
 
@@ -47,6 +48,7 @@ export function PropertyMenu({
         className={styles.input}
         aria-label="Property name"
         defaultValue={property.name}
+        onKeyDown={blurOnEnter}
         maxLength={100}
         onBlur={(event) => {
           const name = event.target.value.trim();

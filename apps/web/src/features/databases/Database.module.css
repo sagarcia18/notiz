@@ -81,11 +81,12 @@
   z-index: 10;
 }
 
+/* Fixed, with top/left or top/right set from the button, so scroll containers cannot clip it. */
 .popover {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
+  position: fixed;
   z-index: 11;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -98,11 +99,6 @@
   box-shadow: 0 6px 24px rgba(15, 15, 15, 0.16);
   font-size: 14px;
   font-weight: normal;
-}
-
-.popoverRight {
-  right: 0;
-  left: auto;
 }
 
 .line {
