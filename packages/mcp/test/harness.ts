@@ -21,7 +21,7 @@ function injectFetch(app: NotizApp): FetchLike {
     const response = await app.inject({
       method: (init.method ?? 'GET') as Method,
       url: url.slice(BASE_URL.length),
-      headers: payload === undefined ? {} : { 'content-type': 'application/json' },
+      headers: Object.fromEntries(new Headers(init.headers).entries()),
       payload,
     });
     const body = response.statusCode === 204 ? null : response.body;

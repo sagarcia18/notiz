@@ -110,3 +110,9 @@ export const diagramLinks = sqliteTable(
     index('diagram_links_page_idx').on(table.pageId),
   ],
 );
+
+/** App-wide settings as key/value pairs; values are JSON. */
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  valueJson: text('value_json').notNull(),
+});

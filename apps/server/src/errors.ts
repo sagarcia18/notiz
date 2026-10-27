@@ -31,10 +31,21 @@ export class ValidationError extends DomainError {
   }
 }
 
+/** The user turned MCP access off; requests from the MCP server are refused. */
+export class McpDisabledError extends DomainError {
+  constructor() {
+    super(
+      'mcp_disabled',
+      'MCP access is turned off in Notiz. Turn it on with the switch in the bottom-left corner of the sidebar.',
+    );
+  }
+}
+
 const statusByCode: Record<ErrorCode, number> = {
   not_found: 404,
   validation_failed: 400,
   conflict: 409,
+  mcp_disabled: 403,
   internal: 500,
 };
 

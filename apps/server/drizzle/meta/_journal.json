@@ -57,6 +57,13 @@
       "when": 1793129814419,
       "tag": "0007_database_description",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793136863851,
+      "tag": "0008_settings",
+      "breakpoints": true
     }
   ]
 }

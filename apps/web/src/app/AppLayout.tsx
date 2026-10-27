@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { Link, Outlet } from 'react-router';
 import { SidebarPages } from '../features/pages/SidebarPages';
+import { McpAccess } from '../features/settings/McpAccess';
 import styles from './AppLayout.module.css';
 
 export function AppLayout(): ReactElement {
@@ -11,6 +12,9 @@ export function AppLayout(): ReactElement {
           Notiz
         </Link>
         <SidebarPages />
+        <footer className={styles.sidebarFooter}>
+          <McpAccess />
+        </footer>
       </aside>
       <main className={styles.main}>
         <Outlet />

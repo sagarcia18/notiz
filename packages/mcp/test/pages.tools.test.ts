@@ -101,6 +101,13 @@ describe('page tools', () => {
     expect(textOf(wrongKind)).toMatch(/^validation_failed: /);
   });
 
+  it('tells Claude when MCP access is turned off in Notiz', async () => {
+    await mcp.app.inject({ method: 'PATCH', url: '/api/settings', payload: { mcpEnabled: false } });
+    const result = await mcp.call('list_page_tree');
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toMatch(/^mcp_disabled: MCP access is turned off in Notiz/);
+  });
+
   it('rejects invalid arguments before calling the API', async () => {
     const result = await mcp.call('get_page', { id: 'not-a-uuid' });
     expect(result.isError).toBe(true);

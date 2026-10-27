@@ -133,6 +133,10 @@ Files are written to disk first and the row is inserted afterwards; a failed or 
 | `layout_json`  | `{ x, y, w, h }` in grid units; 12 columns, `x + w <= 12`                                                                                                        |
 | `created_at`   | Widget order in the list, ties by insertion (the grid uses layout)                                                                                               |
 
+### settings (Phase 6, migration `0008_settings`)
+
+Key/value table (`key` primary key, `value_json`). Holds `mcp_enabled` (JSON boolean; a missing row means on). Read and written only through `settings.repository` / `settings.service`.
+
 ### diagram_links (Phase 5, migration `0006_diagram_links`)
 
 Derived index of the `notiz:pageId` attributes in `pages.diagram_xml`; the XML stays the source of truth.
@@ -168,7 +172,7 @@ Derived index of the `notiz:pageId` attributes in `pages.diagram_xml`; the XML s
 
 ## API overview
 
-All endpoints live under `/api`. Request/response schemas come from `packages/shared`. Errors always use `{ error: { code, message } }` with codes `not_found` (404), `validation_failed` (400), `conflict` (409), `internal` (500).
+All endpoints live under `/api`. Request/response schemas come from `packages/shared`. Errors always use `{ error: { code, message } }` with codes `not_found` (404), `validation_failed` (400), `conflict` (409), `mcp_disabled` (403), `internal` (500).
 
 | Method | Path                            | Phase | Purpose                                                                      |
 | ------ | ------------------------------- | ----- | ---------------------------------------------------------------------------- |
@@ -204,6 +208,8 @@ All endpoints live under `/api`. Request/response schemas come from `packages/sh
 | GET    | `/api/pages/:id/diagram-usages` | 5     | Active diagrams that link to the page (backlinks)                            |
 | GET    | `/api/search?q=&limit=`         | 6     | Full-text search, best rank first (limit 1-50, default 20)                   |
 | POST   | `/api/databases/:id/query`      | 6     | Ad-hoc `{ filters?, sorts?, limit?, offset? }` -> `{ total, rows }`          |
+| GET    | `/api/settings`                 | 6     | `{ mcpEnabled, mcpLastUsedAt }`                                              |
+| PATCH  | `/api/settings`                 | 6     | Update `{ mcpEnabled }`                                                      |
 | POST   | `/api/databases/:id/aggregate`  | 6     | `{ filters?, metric?, metricPropertyId?, groupByPropertyId?, ... }` -> total |
 
 `PATCH /api/pages/:id` also accepts `properties` for database rows (Phase 3). Templates come later.
@@ -223,6 +229,7 @@ All endpoints live under `/api`. Request/response schemas come from `packages/sh
 - Tools: `list_page_tree`, `get_page`, `search_pages`, `create_page`, `update_page`, `move_page`, `trash_page` (`tools/pages.tools.ts`); `get_database`, `list_database_rows`, `create_database_row`, `update_database_row`, `add_database_property` (`tools/databases.tools.ts`); `query_database`, `aggregate_database` (`tools/query.tools.ts`: properties and options by name, resolved to ids in `queryNames.ts` with errors that list the valid names; rows come back keyed by property name with option names); `get_diagram_links`, `get_diagram_usages` (`tools/diagrams.tools.ts`).
 - Documents: `get_page` adds a plain-text `text` next to the BlockNote `content`; `create_page` / `update_page` accept either `content` (BlockNote blocks) or `text`, which `textToBlocks` turns into headings, list, checklist and paragraph blocks. Both replace the whole document.
 - Diagrams are read and written as XML through `update_page { diagram }`; links are `notiz:pageId` attributes in that XML, resolved by the diagram-links endpoints.
+- MCP access switch: `NotizApi` sends `X-Notiz-Client: mcp` on every request. An `onRequest` hook (`settings.routes`) refuses such requests with `mcp_disabled` (403) while `mcp_enabled` is off and otherwise records the time of the last MCP request (in memory, `McpActivity`; reset on server restart). Requests without the header (the web app) are never affected. The web sidebar footer (`features/settings`: `McpAccess` -> `McpSwitch`, `useSettings` polled every 30 s) shows the switch and "last used". This is a convenience switch, not security: any local program can omit the header.
 - API error answers become tool results with `isError` and the text `code: message`; an unreachable server is reported as `unreachable`. Invalid arguments are rejected by the SDK from the tool's Zod schema.
 - Tests (`packages/mcp/test`) connect a real MCP `Client` over `InMemoryTransport` to the server, whose `fetch` is routed into `buildApp(...).inject` on an in-memory database.
 

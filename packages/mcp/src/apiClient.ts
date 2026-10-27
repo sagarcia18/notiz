@@ -1,4 +1,9 @@
-import { type ErrorCode, errorResponseSchema } from '@notiz/shared';
+import {
+  type ErrorCode,
+  MCP_CLIENT_ID,
+  NOTIZ_CLIENT_HEADER,
+  errorResponseSchema,
+} from '@notiz/shared';
 import type { z } from 'zod';
 
 export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;
@@ -59,9 +64,10 @@ export class NotizApi {
   }
 
   private async send(method: Method, path: string, body?: unknown): Promise<Response> {
-    const init: RequestInit = { method };
+    const headers: Record<string, string> = { [NOTIZ_CLIENT_HEADER]: MCP_CLIENT_ID };
+    const init: RequestInit = { method, headers };
     if (body !== undefined) {
-      init.headers = { 'content-type': 'application/json' };
+      headers['content-type'] = 'application/json';
       init.body = JSON.stringify(body);
     }
     let response: Response;

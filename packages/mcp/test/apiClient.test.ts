@@ -33,7 +33,7 @@ describe('NotizApi', () => {
     ).resolves.toEqual(page);
     expect(fetchFn).toHaveBeenCalledWith('http://localhost:3001/api/pages', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'x-notiz-client': 'mcp', 'content-type': 'application/json' },
       body: '{"title":"A"}',
     });
   });

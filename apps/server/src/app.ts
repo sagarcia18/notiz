@@ -8,6 +8,7 @@ import { registerDiagramRoutes } from './routes/diagrams.routes.js';
 import { registerHealthRoutes } from './routes/health.routes.js';
 import { registerPageRoutes, registerTrashRoutes } from './routes/pages.routes.js';
 import { registerSearchRoutes } from './routes/search.routes.js';
+import { registerSettingsRoutes } from './routes/settings.routes.js';
 import { AttachmentFiles } from './storage/attachmentFiles.js';
 
 /** Page content can be large; uploads have their own limit. */
@@ -28,6 +29,7 @@ export function buildApp({ db, dataDir, logger = false }: BuildAppOptions): Fast
       error: { code: 'not_found', message: `Route ${request.method} ${request.url} not found` },
     }),
   );
+  registerSettingsRoutes(app, db);
   registerHealthRoutes(app, db);
   registerPageRoutes(app, db);
   registerDatabaseRoutes(app, db);

@@ -9,6 +9,20 @@
   padding: 12px;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sticks to the bottom-left corner of the window, also on long pages. */
+.sidebarFooter {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  margin-inline: -12px;
+  margin-bottom: -12px;
+  padding: 8px 12px 12px;
+  background: var(--sidebar-bg);
+  border-top: 1px solid var(--border);
 }
 
 .brand {

@@ -13,3 +13,4 @@ export * from './bpmn.js';
 export * from './diagramLinks.js';
 export * from './search.js';
 export * from './databaseQuery.js';
+export * from './settings.js';
