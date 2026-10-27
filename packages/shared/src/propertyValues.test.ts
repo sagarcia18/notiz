@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { PropertyOption } from './databases.js';
-import { convertPropertyValue, isDateValue, isValidPropertyValue } from './propertyValues.js';
+import {
+  convertPropertyValue,
+  isDateValue,
+  isEmptyValue,
+  isValidPropertyValue,
+  valueToText,
+} from './propertyValues.js';
 
 const options: PropertyOption[] = [
   { id: 'o1', name: 'Open', color: 'gray', group: 'todo' },
@@ -55,5 +61,41 @@ describe('convertPropertyValue', () => {
     );
     expect(convertPropertyValue('yes', text, { type: 'checkbox', options: [] })).toBeNull();
     expect(convertPropertyValue(7, { type: 'number', options: [] }, text)).toBe('7');
+  });
+});
+
+describe('multi_select values', () => {
+  const tags = { type: 'multi_select' as const, options };
+
+  it('accepts lists of distinct existing option ids', () => {
+    expect(isValidPropertyValue(tags, ['o1', 'o2'])).toBe(true);
+    expect(isValidPropertyValue(tags, ['o1', 'o1'])).toBe(false);
+    expect(isValidPropertyValue(tags, ['nope'])).toBe(false);
+    expect(isValidPropertyValue(tags, 'o1')).toBe(false);
+    expect(isValidPropertyValue(status, ['o1'])).toBe(false);
+  });
+
+  it('treats an empty list as empty and writes names joined by commas', () => {
+    expect(isEmptyValue([])).toBe(true);
+    expect(valueToText(tags, ['o2', 'o1'])).toBe('Done, Open');
+  });
+
+  it('converts to and from select, status and text', () => {
+    expect(convertPropertyValue('o1', status, tags)).toEqual(['o1']);
+    expect(convertPropertyValue(['o2', 'o1'], tags, status)).toBe('o2');
+    expect(convertPropertyValue(['o1', 'o2'], tags, text)).toBe('Open, Done');
+    expect(convertPropertyValue('done, open, later', text, tags)).toEqual(['o2', 'o1']);
+    expect(convertPropertyValue('later', text, tags)).toBeNull();
+    expect(
+      convertPropertyValue(['o1', 'o2'], tags, {
+        type: 'multi_select',
+        options: [options[1] as PropertyOption],
+      }),
+    ).toEqual(['o2']);
+  });
+
+  it('matches options by name when the ids are not kept', () => {
+    const other: PropertyOption[] = [{ id: 'x', name: 'open', color: 'red' }];
+    expect(convertPropertyValue(['o1'], tags, { type: 'select', options: other })).toBe('x');
   });
 });

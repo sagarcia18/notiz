@@ -55,7 +55,17 @@ export const dbProperties = sqliteTable(
       .references(() => pages.id),
     name: text('name').notNull(),
     type: text('type', {
-      enum: ['title', 'text', 'number', 'select', 'status', 'date', 'checkbox', 'url'],
+      enum: [
+        'title',
+        'text',
+        'number',
+        'select',
+        'multi_select',
+        'status',
+        'date',
+        'checkbox',
+        'url',
+      ],
     }).notNull(),
     optionsJson: text('options_json').notNull().default('[]'),
     sortOrder: text('sort_order').notNull(),

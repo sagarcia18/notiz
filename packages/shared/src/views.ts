@@ -57,6 +57,7 @@ export const operatorsByType: Record<PropertyType, FilterOperator[]> = {
   number: comparisonOperators,
   date: comparisonOperators,
   select: choiceOperators,
+  multi_select: ['contains', 'not_contains', 'is_empty', 'is_not_empty'],
   status: [...choiceOperators, 'in_group'],
   checkbox: ['is_checked', 'is_not_checked'],
 };

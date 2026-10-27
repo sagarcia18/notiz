@@ -135,6 +135,27 @@ describe('databases API', () => {
     expect((await api.page(row.id)).properties).toEqual({});
   });
 
+  it('stores multi_select values as option id lists and drops removed options', async () => {
+    const database = await api.createDatabase();
+    const tags = await api.addProperty(database.id, {
+      name: 'Tags',
+      type: 'multi_select',
+      options: [
+        { name: 'Red', color: 'red' },
+        { name: 'Blue', color: 'blue' },
+      ],
+    });
+    const [red, blue] = tags.options.map((option) => option.id);
+    const row = await api.addRow(database.id, 'Row', { [tags.id]: [red ?? '', blue ?? ''] });
+    expect(row.properties).toEqual({ [tags.id]: [red, blue] });
+    expect((await api.setValues(row.id, { [tags.id]: ['nope'] })).statusCode).toBe(400);
+
+    await api.patchProperty(tags.id, { options: [tags.options[1]] });
+    expect((await api.page(row.id)).properties).toEqual({ [tags.id]: [blue] });
+    await api.patchProperty(tags.id, { type: 'text' });
+    expect((await api.page(row.id)).properties).toEqual({ [tags.id]: 'Blue' });
+  });
+
   it('deletes a property with its values and its view settings', async () => {
     const database = await api.createDatabase();
     const status = await api.addProperty(database.id, { name: 'Status', type: 'status' });

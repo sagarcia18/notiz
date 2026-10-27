@@ -2,6 +2,7 @@ import {
   type DatabaseProperty,
   type PropertyType,
   type UpdatePropertyInput,
+  hasOptions,
   propertyTypeSchema,
 } from '@notiz/shared';
 import type { ReactElement } from 'react';
@@ -14,6 +15,7 @@ export const typeLabels: Record<PropertyType, string> = {
   text: 'Text',
   number: 'Number',
   select: 'Select',
+  multi_select: 'Multi-select',
   status: 'Status',
   date: 'Date',
   checkbox: 'Checkbox',
@@ -76,7 +78,7 @@ export function PropertyMenu({
           ))}
         </select>
       </label>
-      {(property.type === 'select' || property.type === 'status') && (
+      {hasOptions(property.type) && (
         <OptionsEditor
           options={property.options}
           withGroups={property.type === 'status'}

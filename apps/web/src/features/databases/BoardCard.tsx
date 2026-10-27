@@ -1,4 +1,10 @@
-import { type DatabaseProperty, type DatabaseRow, isEmptyValue, valueToText } from '@notiz/shared';
+import {
+  type DatabaseProperty,
+  type DatabaseRow,
+  isEmptyValue,
+  optionIdsOf,
+  valueToText,
+} from '@notiz/shared';
 import type { DragEvent, ReactElement } from 'react';
 import { Link } from 'react-router';
 import styles from './Board.module.css';
@@ -24,8 +30,16 @@ function CardValue({
 }): ReactElement | null {
   const value = row.properties[property.id];
   if (isEmptyValue(value) || value === false) return null;
-  const option = property.options.find((candidate) => candidate.id === value);
-  if (option) return <OptionPill option={option} />;
+  const chosen = property.options.filter((option) => optionIdsOf(value).includes(option.id));
+  if (chosen.length > 0) {
+    return (
+      <span className={styles.cardPills}>
+        {chosen.map((option) => (
+          <OptionPill key={option.id} option={option} />
+        ))}
+      </span>
+    );
+  }
   const text = property.type === 'checkbox' ? `✓ ${property.name}` : valueToText(property, value);
   return <span className={styles.cardValue}>{text}</span>;
 }

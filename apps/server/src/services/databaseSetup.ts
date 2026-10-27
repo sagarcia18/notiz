@@ -6,6 +6,7 @@ import {
   type PropertyType,
   type ViewConfig,
   type ViewType,
+  hasOptions,
   sortKeyBetween,
   viewConfigSchema,
 } from '@notiz/shared';
@@ -26,7 +27,7 @@ export function normalizeOptions(
   type: PropertyType,
   inputs: PropertyOptionInput[] | undefined,
 ): PropertyOption[] {
-  if (type !== 'select' && type !== 'status') {
+  if (!hasOptions(type)) {
     return [];
   }
   const source = inputs ?? (type === 'status' ? defaultStatusOptions : []);

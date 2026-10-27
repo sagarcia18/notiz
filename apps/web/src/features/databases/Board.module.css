@@ -97,3 +97,9 @@
 .add:hover {
   background: var(--hover);
 }
+
+.cardPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

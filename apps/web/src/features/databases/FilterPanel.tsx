@@ -2,6 +2,7 @@ import {
   type DatabaseProperty,
   type FilterOperator,
   type ViewFilter,
+  hasOptions,
   operatorNeedsValue,
   operatorsByType,
   statusGroupSchema,
@@ -52,7 +53,7 @@ function FilterValueInput({ property, filter, onChange }: ValueInputProps): Reac
   const choices =
     filter.operator === 'in_group'
       ? statusGroupSchema.options.map((group) => ({ id: group, name: groupLabels[group] }))
-      : property.type === 'select' || property.type === 'status'
+      : hasOptions(property.type)
         ? property.options
         : null;
   if (choices) {

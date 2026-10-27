@@ -7,6 +7,7 @@ export const propertyTypeSchema = z.enum([
   'text',
   'number',
   'select',
+  'multi_select',
   'status',
   'date',
   'checkbox',
@@ -14,6 +15,11 @@ export const propertyTypeSchema = z.enum([
 ]);
 
 export type PropertyType = z.infer<typeof propertyTypeSchema>;
+
+/** Types whose values are option ids, so `options` are used. */
+export function hasOptions(type: PropertyType): boolean {
+  return type === 'select' || type === 'multi_select' || type === 'status';
+}
 
 export const optionColorSchema = z.enum([
   'gray',

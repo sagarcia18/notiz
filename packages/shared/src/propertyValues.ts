@@ -1,7 +1,15 @@
-import type { DatabaseProperty, PropertyOption, PropertyType } from './databases.js';
+import {
+  type DatabaseProperty,
+  type PropertyOption,
+  type PropertyType,
+  hasOptions,
+} from './databases.js';
 import type { PropertyValue } from './propertyValueSchema.js';
 
 export const MAX_TEXT_VALUE_LENGTH = 10_000;
+
+/** Multi-select values are written as option names joined by this separator. */
+export const MULTI_VALUE_SEPARATOR = ', ';
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -15,11 +23,24 @@ export function isDateValue(value: string): boolean {
 }
 
 export function isEmptyValue(value: PropertyValue | undefined): boolean {
-  return value === undefined || value === null || value === '';
+  return (
+    value === undefined ||
+    value === null ||
+    value === '' ||
+    (Array.isArray(value) && value.length === 0)
+  );
 }
 
 function hasOption(options: PropertyOption[], id: string): boolean {
   return options.some((option) => option.id === id);
+}
+
+function isValidOptionList(options: PropertyOption[], value: PropertyValue): boolean {
+  return (
+    Array.isArray(value) &&
+    new Set(value).size === value.length &&
+    value.every((id) => hasOption(options, id))
+  );
 }
 
 /** Whether `value` may be stored for the property. `null` (clear) is always valid. */
@@ -44,14 +65,27 @@ export function isValidPropertyValue(
     case 'select':
     case 'status':
       return typeof value === 'string' && hasOption(property.options, value);
+    case 'multi_select':
+      return isValidOptionList(property.options, value);
   }
 }
 
-function findOption(options: PropertyOption[], value: PropertyValue): PropertyOption | undefined {
-  return typeof value === 'string' ? options.find((option) => option.id === value) : undefined;
+/** The option ids of a value: one for select/status, any number for multi_select. */
+export function optionIdsOf(value: PropertyValue | undefined): string[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  return typeof value === 'string' && value !== '' ? [value] : [];
 }
 
-/** The value as plain text, using option names for select and status. */
+function optionNames(options: PropertyOption[], value: PropertyValue | undefined): string[] {
+  return optionIdsOf(value).flatMap((id) => {
+    const option = options.find((candidate) => candidate.id === id);
+    return option ? [option.name] : [];
+  });
+}
+
+/** The value as plain text, using option names for select, multi-select and status. */
 export function valueToText(
   property: Pick<DatabaseProperty, 'type' | 'options'>,
   value: PropertyValue | undefined,
@@ -60,7 +94,10 @@ export function valueToText(
     return '';
   }
   if (property.type === 'select' || property.type === 'status') {
-    return findOption(property.options, value ?? null)?.name ?? '';
+    return optionNames(property.options, value)[0] ?? '';
+  }
+  if (property.type === 'multi_select') {
+    return optionNames(property.options, value).join(MULTI_VALUE_SEPARATOR);
   }
   return String(value);
 }
@@ -75,16 +112,29 @@ function textToOptionId(text: string, options: PropertyOption[]): string | null 
   return options.find((option) => option.name.toLowerCase() === name)?.id ?? null;
 }
 
-function convertToChoice(
+function keptOptionIds(
   value: PropertyValue,
   from: Pick<DatabaseProperty, 'type' | 'options'>,
   options: PropertyOption[],
-): PropertyValue {
-  const sameIdKept = typeof value === 'string' && hasOption(options, value);
-  if ((from.type === 'select' || from.type === 'status') && sameIdKept) {
-    return value;
-  }
-  return textToOptionId(valueToText(from, value), options);
+): string[] {
+  return hasOptions(from.type) ? optionIdsOf(value).filter((id) => hasOption(options, id)) : [];
+}
+
+/** Option names of the value (or comma-separated parts of its text) looked up in `options`. */
+function namesToOptionIds(
+  value: PropertyValue,
+  from: Pick<DatabaseProperty, 'type' | 'options'>,
+  options: PropertyOption[],
+): string[] {
+  const names =
+    from.type === 'multi_select'
+      ? optionNames(from.options, value)
+      : valueToText(from, value).split(',');
+  const ids = names.flatMap((name) => {
+    const id = textToOptionId(name, options);
+    return id ? [id] : [];
+  });
+  return [...new Set(ids)];
 }
 
 /**
@@ -118,8 +168,18 @@ export function convertPropertyValue(
       break;
     case 'select':
     case 'status':
-      converted = convertToChoice(value, from, to.options);
+      converted =
+        keptOptionIds(value, from, to.options)[0] ??
+        (from.type === 'multi_select'
+          ? (namesToOptionIds(value, from, to.options)[0] ?? null)
+          : textToOptionId(text, to.options));
       break;
+    case 'multi_select': {
+      const kept = keptOptionIds(value, from, to.options);
+      const ids = kept.length > 0 ? kept : namesToOptionIds(value, from, to.options);
+      converted = ids.length > 0 ? ids : null;
+      break;
+    }
   }
   return isValidPropertyValue(to, converted) ? converted : null;
 }

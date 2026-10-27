@@ -6,6 +6,8 @@ import {
   type PropertyValue,
   type ViewFilter,
   type ViewSort,
+  hasOptions,
+  optionIdsOf,
   statusGroupSchema,
 } from '@notiz/shared';
 import { NotizApiError } from './apiClient.js';
@@ -22,7 +24,12 @@ export interface NamedSort {
   direction: 'asc' | 'desc';
 }
 
-const optionOperators = new Set<FilterOperator>(['equals', 'not_equals']);
+const optionOperators = new Set<FilterOperator>([
+  'equals',
+  'not_equals',
+  'contains',
+  'not_contains',
+]);
 
 function invalid(message: string): NotizApiError {
   return new NotizApiError('validation_failed', message);
@@ -69,8 +76,11 @@ function resolveValue(
   filter: NamedFilter,
 ): string | number | undefined {
   if (filter.operator === 'in_group') return resolveGroup(filter.value);
-  const isChoice = property.type === 'select' || property.type === 'status';
-  if (isChoice && optionOperators.has(filter.operator) && filter.value !== undefined) {
+  if (
+    hasOptions(property.type) &&
+    optionOperators.has(filter.operator) &&
+    filter.value !== undefined
+  ) {
     return resolveOptionId(property, filter.value);
   }
   return filter.value;
@@ -104,6 +114,11 @@ export function resolveSorts(
 function displayValue(property: DatabaseProperty, row: DatabaseRow): PropertyValue {
   if (property.type === 'title') return row.title;
   const value = row.properties[property.id] ?? null;
+  if (property.type === 'multi_select') {
+    return property.options
+      .filter((option) => optionIdsOf(value).includes(option.id))
+      .map((option) => option.name);
+  }
   if (property.type !== 'select' && property.type !== 'status') return value;
   return property.options.find((option) => option.id === value)?.name ?? null;
 }

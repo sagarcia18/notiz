@@ -101,3 +101,35 @@ describe('sortRows', () => {
     expect(names(sortRows([...rows].reverse(), props, []))).toEqual(['Alpha', 'beta', 'Gamma']);
   });
 });
+
+describe('multi_select', () => {
+  const tags: DatabaseProperty = {
+    ...property('tags', 'multi_select'),
+    options: [
+      { id: 'red', name: 'Red', color: 'red' },
+      { id: 'blue', name: 'Blue', color: 'blue' },
+    ],
+  };
+  const tagProps = new Map([[tags.id, tags]]);
+  const tagged = [
+    row('One', 'a1', { tags: ['blue'] }),
+    row('Two', 'a2', { tags: ['red', 'blue'] }),
+    row('Three', 'a3', { tags: [] }),
+  ];
+
+  it('filters by contained option and emptiness', () => {
+    const where = (operator: 'contains' | 'not_contains' | 'is_empty', value?: string): string[] =>
+      names(filterRows(tagged, tagProps, [{ propertyId: 'tags', operator, value }]));
+    expect(where('contains', 'red')).toEqual(['Two']);
+    expect(where('not_contains', 'red')).toEqual(['One', 'Three']);
+    expect(where('is_empty')).toEqual(['Three']);
+  });
+
+  it('sorts by the first option in option order, empty last', () => {
+    expect(names(sortRows(tagged, tagProps, [{ propertyId: 'tags', direction: 'asc' }]))).toEqual([
+      'Two',
+      'One',
+      'Three',
+    ]);
+  });
+});

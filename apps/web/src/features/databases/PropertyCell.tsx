@@ -1,6 +1,7 @@
 import type { DatabaseProperty, PropertyValue } from '@notiz/shared';
 import { type ReactElement, useState } from 'react';
 import { blurOnEnter } from './blurOnEnter';
+import { MultiChoiceCell } from './MultiChoiceCell';
 import { OptionPill } from './OptionPill';
 import styles from './PropertyCell.module.css';
 
@@ -92,6 +93,8 @@ export function PropertyCell({ property, value, onChange }: PropertyCellProps): 
     case 'select':
     case 'status':
       return <ChoiceCell property={property} value={value} onChange={onChange} />;
+    case 'multi_select':
+      return <MultiChoiceCell property={property} value={value} onChange={onChange} />;
     case 'number': {
       const initial = typeof value === 'number' ? String(value) : '';
       return (

@@ -4,8 +4,10 @@ import {
   type PropertyValue,
   type ViewFilter,
   type ViewSort,
+  hasOptions,
   isEmptyValue,
   operatorsByType,
+  optionIdsOf,
 } from '@notiz/shared';
 
 type PropertyMap = ReadonlyMap<string, DatabaseProperty>;
@@ -28,6 +30,9 @@ function compareTo(value: PropertyValue, target: string | number | undefined): n
 }
 
 function textMatches(value: PropertyValue, target: string | number | undefined): boolean {
+  if (Array.isArray(value)) {
+    return value.includes(String(target ?? ''));
+  }
   const needle = String(target ?? '').toLowerCase();
   return String(value ?? '')
     .toLowerCase()
@@ -102,13 +107,14 @@ export function filterRows(
 }
 
 function sortRank(property: DatabaseProperty, value: PropertyValue): string | number | boolean {
-  if (property.type === 'select' || property.type === 'status') {
-    return property.options.findIndex((option) => option.id === value);
+  if (hasOptions(property.type)) {
+    const first = optionIdsOf(value)[0];
+    return property.options.findIndex((option) => option.id === first);
   }
   if (typeof value === 'string') {
     return value.toLocaleLowerCase();
   }
-  return value ?? '';
+  return Array.isArray(value) ? '' : (value ?? '');
 }
 
 function compareValues(property: DatabaseProperty, a: PropertyValue, b: PropertyValue): number {
