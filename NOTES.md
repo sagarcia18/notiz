@@ -10,6 +10,18 @@ Phase 4 (dashboards) done on branch `phase-4-dashboards` (branched from phase 3)
 Phase 5 (BPMN diagrams) done on branch `phase-5-bpmn` (branched from phase 4).
 Phase 6 (MCP server) done on branch `phase-6-mcp` (branched from phase 5).
 Phase 7 (Notion import + search UI) done on branch `phase-7-notion-import` (branched from phase 6).
+Phase 8 (responsive layout for phones and tablets) done on branch `phase-8-responsive` (branched from phase 7). Playwright E2E moved to Phase 9.
+
+## Phase 8 - what was built
+
+- No new dependencies, no migration; web only. Breakpoint convention in `lib/breakpoints.ts` (phone < 768px, tablet 768-1024px, touch = `pointer: coarse`) with `useMediaQuery` / `useBreakpoint` / `useCoarsePointer`; details in `docs/ARCHITECTURE.md` ("Responsive layout").
+- Sidebar: off-canvas drawer below 1025px (☰ in a top bar on phones, a thin rail on tablets; overlay, Esc, closes on navigation, `inert` while closed). Smaller page padding and title on phones.
+- Search palette and import dialog render in a portal (they are opened from the drawer); full-screen palette with a Cancel button and a bottom-sheet import dialog on phones.
+- `Popover`: clamped to the window (pure `panelPosition`), bottom sheet on phones that survives the on-screen keyboard. Database toolbars and view tabs wrap/scroll; inputs use 16px on phones (no iOS zoom).
+- Tables: sticky title column on tablets/phones, Open/trash always visible on touch. Boards: snapping columns of ~85vw on phones. Native drag-and-drop is off on touch screens for the page tree and board cards; tree add/trash buttons are always visible there; tap targets ~40-44px.
+- Dashboards: one column on phones in saved grid order (`stackedWidgets`, `stackedHeight`) without react-grid-layout, so the desktop layout is never changed; tablets keep the grid.
+- Editor without BlockNote's 54px gutter below 1025px; BPMN canvas sized with `dvh`, wrapping toolbar; trash list wraps on phones.
+- Tests: `useMediaQuery.test.tsx` (breakpoints, live changes, coarse pointer), `AppLayout.test.tsx` (desktop sidebar, open/Esc/overlay, close on navigation, desktop -> tablet), `popoverPosition.test.ts`, `Popover.test.tsx` (desktop panel vs phone sheet), `SearchPalette` Cancel, `layout.test.ts` (stacked order and height), `DashboardView.test.tsx` (stack on phones without saving, grid on desktop).
 
 ## Phase 7 - what was built
 
@@ -84,7 +96,7 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 
 ## Open points
 
-- Phone access (user request): opt-in `WEB_HOST` in the repo `.env` makes the Vite dev server listen on that address (meant for the Tailscale IP); the API stays on 127.0.0.1 behind the `/api` proxy. Vite now reads the repo `.env` (`loadEnv`), so `API_PORT` from `.env` reaches the proxy too. No login: anyone who can reach the port has full access. The layout is not made for phones yet. Setup steps in `README.md`; test: `apps/web/devServer.test.ts`.
+- Phone access (user request): opt-in `WEB_HOST` in the repo `.env` makes the Vite dev server listen on that address (meant for the Tailscale IP); the API stays on 127.0.0.1 behind the `/api` proxy. Vite now reads the repo `.env` (`loadEnv`), so `API_PORT` from `.env` reaches the proxy too. No login: anyone who can reach the port has full access. The layout is responsive since Phase 8. Setup steps in `README.md`; test: `apps/web/devServer.test.ts`.
 - TypeScript is pinned to `~6.0.3` because typescript-eslint does not support TS 7 yet.
 - pnpm lives in `%USERPROFILE%\.local\bin` (corepack shim), not in Program Files.
 - Phase 1 UI not yet tested in the browser by the user. Sidebar expand state is in memory only (lost on reload). Drag-and-drop has no keyboard alternative yet.
@@ -106,7 +118,7 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 - Phase 4 UI not yet tested in the browser by the user (adding widgets, settings popover inside a grid item, drag/resize and saving, charts in dark mode, refresh after editing rows).
 - Dashboards: no line/time-series charts (grouping by date), no per-widget filters (only a view's filters), one database per widget, no grouping by checkbox. Widget configs are not cleaned when a property or view is deleted; the widget shows "source missing" and must be reconfigured.
 - Chart fills reuse the option colors of the pills (not a validated categorical palette; several pairs fail the CVD check). Bars are named on the axis and pie slices in the legend and tooltip, so identity never depends on color alone.
-- The grid is not responsive (fixed 12 columns; very narrow windows squeeze widgets). Layout saves are not debounced: each finished drag/resize sends one `PUT` with the changed widgets.
+- The grid has fixed 12 columns on tablets and desktops (narrow desktop windows above 767px still squeeze widgets); phones get a stacked column (Phase 8). Layout saves are not debounced: each finished drag/resize sends one `PUT` with the changed widgets.
 
 - Fixed a flaky dashboards test: widgets created in the same millisecond were listed by their random id; ties now follow insertion order (`rowid`). Regression test in `dashboards.test.ts`.
 - Phase 5 UI not yet tested in the browser by the user (modeling, autosave, import/export, the light canvas inside the dark theme, keyboard shortcuts of bpmn-js).
@@ -125,6 +137,10 @@ CSS Modules; attachments at `DATA_DIR/attachments/<pageId>/<attachmentId>-<fileN
 - Internal page links in imported content are `/pages/<id>` hrefs; how the editor opens them (same or new tab) is not checked yet.
 - `multi_select`: no grouping on boards or dashboards; option order is the stored order, values are sorted in option order when edited.
 
+- Phase 8 not yet tested by the user on a real phone or tablet; only jsdom tests and CSS review (no browser run in this phase).
+- Not responsive / touch limits: no way to move pages in the tree or cards between board columns on touch screens (change the value on the row page instead; a "Move to…" menu is open); dashboards cannot be arranged on phones (only on tablet/desktop); table column resizing by touch depends on pointer events and is fiddly; BlockNote's side menu (drag handle, "+") and formatting toolbar are mouse-first, editing text works; the BPMN canvas is view-and-export on phones (diagram-js has no touch panning/modeling, so drags scroll the page); the light BPMN canvas and charts are not re-laid out for very small heights; no landscape-specific tweaks; the drawer has no swipe-to-open gesture and no focus trap (it is `inert` while closed).
+- The sidebar expand state and drawer state are in memory only.
+
 ## Next step
 
-Phase 8: Playwright E2E. Still open from the project scope: templates.
+Phase 9: Playwright E2E (include phone and tablet viewports, e.g. 375px with no horizontal page scroll). Still open from the project scope: templates.
