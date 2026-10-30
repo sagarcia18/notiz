@@ -86,3 +86,21 @@
   color: var(--text-muted);
   font-size: 13px;
 }
+
+/* Touch screens: bigger rows and the add/trash buttons stay visible (no hover). */
+@media (pointer: coarse) {
+  .row {
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .iconButton {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .actions {
+    display: inline-flex;
+  }
+}

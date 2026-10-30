@@ -111,6 +111,12 @@ describe('SearchPalette', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
+  it('closes from the Cancel button, the way out on phones', () => {
+    const { onClose } = renderPalette();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('explains empty, missing and failed searches', () => {
     renderPalette({ query: '', results: [] });
     expect(screen.getByText('Type to search titles and page text')).toBeTruthy();

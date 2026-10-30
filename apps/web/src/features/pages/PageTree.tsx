@@ -1,6 +1,7 @@
 import type { MovePageInput, PageTreeNode } from '@notiz/shared';
 import { type DragEvent, type ReactElement, useMemo, useState } from 'react';
 import { type DropPosition, canDrop, dropPositionAt, parentMap, toMoveInput } from './dropTarget';
+import { useCoarsePointer } from '../../lib/useMediaQuery';
 import styles from './PageTree.module.css';
 import { type PageTreeHandlers, PageTreeItem } from './PageTreeItem';
 
@@ -33,8 +34,11 @@ export function PageTree({ nodes, onMove, ...rest }: PageTreeProps): ReactElemen
     setDropHint(undefined);
   };
 
+  // Touch screens scroll the sidebar instead; native drag-and-drop would fight with that.
+  const draggable = !useCoarsePointer();
   const handlers: PageTreeHandlers = {
     ...rest,
+    draggable,
     dropHint,
     onDragStart: setDraggedId,
     onDragOver: (node, event) => {

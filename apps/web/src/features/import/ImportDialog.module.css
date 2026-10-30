@@ -106,3 +106,24 @@
   cursor: progress;
   opacity: 0.6;
 }
+
+/* Phones: a sheet at the bottom of the screen. */
+@media (max-width: 767px) {
+  .backdrop {
+    align-items: flex-end;
+    padding-top: 0;
+  }
+
+  .dialog {
+    width: 100vw;
+    max-height: 90dvh;
+    overflow-y: auto;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    border-radius: 12px 12px 0 0;
+  }
+
+  .primary,
+  .close {
+    min-height: 44px;
+  }
+}

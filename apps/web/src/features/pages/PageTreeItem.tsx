@@ -15,6 +15,7 @@ export interface PageTreeHandlers {
   activeId: string | undefined;
   expandedIds: ReadonlySet<string>;
   dropHint: { id: string; position: DropPosition } | undefined;
+  draggable: boolean;
   onToggle: (id: string) => void;
   onAddChild: (id: string) => void;
   onTrash: (id: string) => void;
@@ -50,7 +51,7 @@ export function PageTreeItem({ node, depth, handlers }: PageTreeItemProps): Reac
       <div
         className={rowClasses.filter(Boolean).join(' ')}
         style={{ paddingLeft: 4 + depth * 14 }}
-        draggable
+        draggable={handlers.draggable}
         onDragStart={(event) => {
           event.dataTransfer.effectAllowed = 'move';
           event.dataTransfer.setData('text/plain', node.id);

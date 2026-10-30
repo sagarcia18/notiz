@@ -7,6 +7,7 @@ import {
 } from '@notiz/shared';
 import type { DragEvent, ReactElement } from 'react';
 import { Link } from 'react-router';
+import { useCoarsePointer } from '../../lib/useMediaQuery';
 import styles from './Board.module.css';
 import { OptionPill } from './OptionPill';
 
@@ -55,6 +56,8 @@ export function BoardCard({
   onDragOver,
   onDrop,
 }: BoardCardProps): ReactElement {
+  // On touch screens cards are not draggable, so swiping scrolls the board; the value is edited on the row page.
+  const draggable = !useCoarsePointer();
   const classes = [
     styles.card,
     dragging ? styles.dragging : '',
@@ -63,7 +66,7 @@ export function BoardCard({
   return (
     <div
       className={classes.join(' ')}
-      draggable
+      draggable={draggable}
       onDragStart={(event) => {
         event.dataTransfer.effectAllowed = 'move';
         event.dataTransfer.setData('text/plain', row.id);

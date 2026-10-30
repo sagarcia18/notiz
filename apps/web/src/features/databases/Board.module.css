@@ -103,3 +103,27 @@
   flex-wrap: wrap;
   gap: 4px;
 }
+
+/* Phones: one column almost fills the screen; swiping snaps to the next column. */
+@media (max-width: 767px) {
+  .board {
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+  }
+
+  .column {
+    width: 85vw;
+    max-width: 320px;
+    scroll-snap-align: start;
+  }
+}
+
+@media (pointer: coarse) {
+  .card {
+    cursor: default;
+  }
+
+  .add {
+    padding: 12px 6px;
+  }
+}

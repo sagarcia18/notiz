@@ -53,3 +53,18 @@
 .error {
   color: var(--error);
 }
+
+@media (max-width: 767px) {
+  .header {
+    margin-bottom: 16px;
+  }
+
+  .icon {
+    width: 52px;
+    font-size: 36px;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+}

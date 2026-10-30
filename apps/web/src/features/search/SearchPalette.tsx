@@ -104,20 +104,26 @@ export function SearchPalette(props: SearchPaletteProps): ReactElement {
         className={styles.palette}
         onClick={(event) => event.stopPropagation()}
       >
-        <input
-          ref={inputRef}
-          className={styles.input}
-          role="combobox"
-          aria-label="Search pages"
-          aria-expanded={results.length > 0}
-          aria-controls={LIST_ID}
-          aria-activedescendant={results.length > 0 ? optionId(active) : undefined}
-          aria-autocomplete="list"
-          placeholder="Search pages…"
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          onKeyDown={onKeyDown}
-        />
+        <div className={styles.inputRow}>
+          <input
+            ref={inputRef}
+            className={styles.input}
+            role="combobox"
+            aria-label="Search pages"
+            aria-expanded={results.length > 0}
+            aria-controls={LIST_ID}
+            aria-activedescendant={results.length > 0 ? optionId(active) : undefined}
+            aria-autocomplete="list"
+            placeholder="Search pages…"
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            onKeyDown={onKeyDown}
+          />
+          {/* Phones have no Esc key and no backdrop around the full-screen palette. */}
+          <button type="button" className={styles.cancel} onClick={onClose}>
+            Cancel
+          </button>
+        </div>
         {results.length > 0 && (
           <ul ref={listRef} id={LIST_ID} role="listbox" className={styles.list}>
             {results.map((result, index) => {
