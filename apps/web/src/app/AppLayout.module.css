@@ -149,3 +149,10 @@
     transition: none;
   }
 }
+
+/* Safety net: nothing inside a page may widen the screen on phones (tables scroll on their own). */
+@media (max-width: 767px) {
+  .main {
+    overflow-x: clip;
+  }
+}
