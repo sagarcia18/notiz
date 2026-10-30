@@ -78,3 +78,26 @@
   background: var(--accent-soft);
   opacity: 1;
 }
+
+/* Phones: widgets stacked in one column (see stackedWidgets in layout.ts). */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stack .header {
+  cursor: default;
+}
+
+@media (max-width: 767px) {
+  .kpiValue {
+    font-size: 32px;
+  }
+}
+
+@media (pointer: coarse) {
+  .header {
+    min-height: 44px;
+  }
+}

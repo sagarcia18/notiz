@@ -37,3 +37,19 @@ export function changedLayouts(
     return unchanged ? [] : [{ id: i, layout: { x, y, w, h } }];
   });
 }
+
+/**
+ * Phones show widgets in one column, in reading order of the saved grid:
+ * top to bottom, then left to right. The saved layout itself is not touched.
+ */
+export function stackedWidgets(widgets: readonly DashboardWidget[]): DashboardWidget[] {
+  return [...widgets].sort((a, b) => a.layout.y - b.layout.y || a.layout.x - b.layout.x);
+}
+
+const MIN_STACKED_HEIGHT = 160;
+
+/** Pixel height of a stacked widget: as tall as on the grid, but never cramped. */
+export function stackedHeight(widget: DashboardWidget, rowHeight: number, gap: number): number {
+  const { h } = widget.layout;
+  return Math.max(MIN_STACKED_HEIGHT, h * rowHeight + (h - 1) * gap);
+}
