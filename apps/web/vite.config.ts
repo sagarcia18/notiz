@@ -16,5 +16,13 @@ export default defineConfig(({ mode }) => {
       // The API itself only listens on 127.0.0.1; other devices reach it through this proxy.
       proxy: { '/api': settings.apiTarget },
     },
+    // `pnpm serve`: the built app (a few minified files instead of hundreds of modules),
+    // on the same port and address as the dev server, so phone URL and firewall rule stay.
+    preview: {
+      port: 5173,
+      strictPort: true,
+      host: settings.host,
+      proxy: { '/api': settings.apiTarget },
+    },
   };
 });
