@@ -1,6 +1,7 @@
 import type { PageKind, SearchResult } from '@notiz/shared';
 import { type KeyboardEvent, type ReactElement, useEffect, useRef, useState } from 'react';
 import { highlightParts } from './highlight';
+import { createPortal } from 'react-dom';
 import styles from './SearchPalette.module.css';
 
 interface SearchPaletteProps {
@@ -93,7 +94,8 @@ export function SearchPalette(props: SearchPaletteProps): ReactElement {
   };
 
   const status = statusText(props);
-  return (
+  // In a portal: the sidebar drawer is transformed and inert while closed on phones.
+  return createPortal(
     <div className={styles.backdrop} onClick={onClose}>
       <div
         role="dialog"
@@ -150,6 +152,7 @@ export function SearchPalette(props: SearchPaletteProps): ReactElement {
         {status && <p className={props.errorMessage ? styles.error : styles.status}>{status}</p>}
         <p className={styles.keys}>↑↓ to move · Enter to open · Esc to close</p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

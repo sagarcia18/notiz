@@ -1,5 +1,6 @@
 import type { NotionImportResult } from '@notiz/shared';
 import { type ReactElement, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './ImportDialog.module.css';
 
 interface ImportDialogProps {
@@ -69,7 +70,8 @@ export function ImportDialog({
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [isImporting, onClose]);
 
-  return (
+  // In a portal: the sidebar drawer is transformed and inert while closed on phones.
+  return createPortal(
     <div className={styles.backdrop} onClick={isImporting ? undefined : onClose}>
       <div
         role="dialog"
@@ -107,6 +109,7 @@ export function ImportDialog({
           Close
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
