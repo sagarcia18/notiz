@@ -57,3 +57,25 @@
 .error {
   color: var(--error);
 }
+
+/* Phones: name on its own line, date and buttons below it. */
+@media (max-width: 767px) {
+  .item {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .name {
+    flex-basis: 100%;
+  }
+
+  .date {
+    flex: 1;
+  }
+}
+
+@media (pointer: coarse) {
+  .button {
+    min-height: 40px;
+  }
+}

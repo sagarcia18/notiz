@@ -136,3 +136,36 @@
   color: #9b9a97;
   font-style: italic;
 }
+
+@media (max-width: 767px) {
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  .status,
+  .statusError {
+    flex-basis: 100%;
+  }
+
+  .canvas {
+    height: calc(100dvh - 200px);
+    min-height: 300px;
+  }
+
+  .select,
+  .search {
+    font-size: 16px;
+  }
+}
+
+@media (pointer: coarse) {
+  .button {
+    min-height: 40px;
+    padding-inline: 12px;
+    font-size: 14px;
+  }
+
+  .target {
+    padding: 10px 8px;
+  }
+}

@@ -16,3 +16,9 @@
   background: var(--hover);
   color: var(--text);
 }
+
+@media (pointer: coarse) {
+  .entry {
+    min-height: 40px;
+  }
+}

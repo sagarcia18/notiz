@@ -40,3 +40,9 @@
 .error {
   color: var(--error);
 }
+
+@media (max-width: 767px) {
+  .name {
+    width: 110px;
+  }
+}

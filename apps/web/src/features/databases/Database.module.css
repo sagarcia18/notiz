@@ -183,3 +183,56 @@
 .pill[data-color='red'] {
   background: rgba(212, 76, 71, 0.25);
 }
+
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgba(15, 15, 15, 0.4);
+}
+
+/* Phones: popovers open as a sheet along the bottom of the screen. */
+.sheet {
+  inset: auto 0 0 0;
+  min-width: 0;
+  max-width: none;
+  max-height: 85dvh;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  border-radius: 12px 12px 0 0;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 767px) {
+  .bar {
+    flex-wrap: wrap;
+  }
+
+  /* Many views scroll sideways instead of widening the page. */
+  .tabs {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .tools {
+    flex-wrap: wrap;
+  }
+
+  /* 16px keeps iOS from zooming into focused fields. */
+  .input,
+  .select {
+    font-size: 16px;
+  }
+}
+
+@media (pointer: coarse) {
+  .button,
+  .tab {
+    min-height: 40px;
+    padding-inline: 12px;
+  }
+
+  .tabDelete {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}

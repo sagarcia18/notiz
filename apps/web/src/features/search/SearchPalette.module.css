@@ -106,3 +106,55 @@
   color: var(--text-muted);
   font-size: 12px;
 }
+
+/* Phones: the palette fills the screen, so results stay above the on-screen keyboard. */
+@media (max-width: 767px) {
+  .backdrop {
+    padding-top: 0;
+  }
+
+  .palette {
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .item,
+  .activeItem {
+    padding: 12px 10px;
+  }
+
+  .keys {
+    display: none;
+  }
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.inputRow .input {
+  flex: 1;
+  min-width: 0;
+  border-bottom: none;
+}
+
+.cancel {
+  display: none;
+  min-height: 44px;
+  padding: 0 14px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (max-width: 767px) {
+  .cancel {
+    display: block;
+  }
+}

@@ -18,3 +18,17 @@
   background: transparent;
   color: var(--text);
 }
+
+/*
+ * Phones and tablets: the page padding is smaller than BlockNote's side-menu gutter,
+ * so the editor stays inside the page instead of pushing it sideways.
+ */
+@media (max-width: 1024px) {
+  .editor {
+    margin-inline: 0;
+  }
+
+  .editor :global(.bn-editor) {
+    padding-inline: 0;
+  }
+}

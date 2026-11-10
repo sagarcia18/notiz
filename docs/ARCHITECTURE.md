@@ -201,6 +201,18 @@ Everything goes under one new top-level page "Notion import YYYY-MM-DD HH:MM" in
 
 Notion "person" properties (e.g. Assignee) have no equivalent in a single-user app and are skipped on import.
 
+### Responsive layout (Phase 8)
+
+Web only, no data model change. Convention in `apps/web/src/lib/breakpoints.ts`: phone `max-width: 767px`, tablet `768px-1024px`, desktop above, touch = `pointer: coarse`. CSS Modules repeat these numbers in `@media` (custom properties do not work there); TypeScript uses `useMediaQuery` / `useBreakpoint` / `useCoarsePointer` (`lib/useMediaQuery.ts`, `useSyncExternalStore` over `matchMedia`; tests use `lib/fakeMatchMedia.ts`).
+
+- Shell (`AppLayout`): below 1025px the sidebar is an off-canvas drawer (`useSidebarDrawer`: opens from ☰, closes on Esc, on the overlay and on any navigation; `inert` while closed). Phones get a top bar, tablets a 52px rail. `.main` padding 48/96 -> 32/40 (tablet) -> 16 (phone); phones clip horizontal overflow of `.main`.
+- Dialogs that are opened from the sidebar (`SearchPalette`, `ImportDialog`) render through a portal into `document.body`, because the drawer is transformed and inert. On phones the palette is full screen with a Cancel button; the import dialog is a bottom sheet.
+- `Popover`: position computed by the pure `panelPosition` (clamped to the window, max width/height); on phones a bottom sheet instead, which does not close on scroll or height-only resizes (on-screen keyboard).
+- Tables scroll inside `.scroll` with a sticky title column (tablet and phone); boards snap column by column on phones.
+- Dashboards: on phones `DashboardView` renders `stackedWidgets` (saved grid order, top-to-bottom then left-to-right) in one column with `stackedHeight`, without react-grid-layout, so nothing is dragged, resized or saved. Tablets and desktops keep the 12-column grid.
+- Touch: native drag-and-drop is off for the sidebar tree and board cards (`draggable={!coarse}`), so swipes scroll; hover-only buttons (tree add/trash, table Open/trash) are always visible; tap targets are about 40-44px.
+- The block editor drops BlockNote's 54px side-menu gutter below 1025px; the BPMN canvas is sized with `dvh` and its toolbar wraps.
+
 ## API overview
 
 All endpoints live under `/api`. Request/response schemas come from `packages/shared`. Errors always use `{ error: { code, message } }` with codes `not_found` (404), `validation_failed` (400), `conflict` (409), `mcp_disabled` (403), `internal` (500).

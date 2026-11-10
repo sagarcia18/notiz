@@ -27,3 +27,14 @@
   font-family: inherit;
   font-size: 11px;
 }
+
+@media (pointer: coarse) {
+  .entry {
+    min-height: 40px;
+  }
+
+  /* No keyboard shortcut on touch screens. */
+  .kbd {
+    display: none;
+  }
+}

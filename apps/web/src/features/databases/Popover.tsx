@@ -6,7 +6,9 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useBreakpoint } from '../../lib/useMediaQuery';
 import styles from './Database.module.css';
+import { panelPosition } from './popoverPosition';
 
 interface PopoverProps {
   label: ReactNode;
@@ -16,20 +18,10 @@ interface PopoverProps {
   children: ReactNode;
 }
 
-const GAP = 4;
-
 /**
- * Fixed position below the button, so scrolling containers (the table) cannot
- * clip the panel. Coordinates are taken when the panel opens.
+ * A button that opens a panel below it; clicking outside or scrolling the page closes it.
+ * On phones the panel is a sheet at the bottom of the screen instead.
  */
-function panelPosition(button: HTMLElement, alignRight: boolean): CSSProperties {
-  const box = button.getBoundingClientRect();
-  return alignRight
-    ? { top: box.bottom + GAP, right: window.innerWidth - box.right }
-    : { top: box.bottom + GAP, left: box.left };
-}
-
-/** A button that opens a panel below it; clicking outside or scrolling the page closes it. */
 export function Popover({
   label,
   title,
@@ -41,22 +33,27 @@ export function Popover({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const open = position !== null;
+  const isSheet = useBreakpoint() === 'phone';
 
   useEffect(() => {
     if (!open) return undefined;
+    const openWidth = window.innerWidth;
     const closeOnOutsideScroll = (event: Event): void => {
       if (!(event.target instanceof Node && panelRef.current?.contains(event.target))) {
         setPosition(null);
       }
     };
-    const close = (): void => setPosition(null);
-    window.addEventListener('scroll', closeOnOutsideScroll, true);
-    window.addEventListener('resize', close);
+    // The on-screen keyboard changes the height (and may scroll); only a width change closes.
+    const closeOnWidthChange = (): void => {
+      if (window.innerWidth !== openWidth) setPosition(null);
+    };
+    if (!isSheet) window.addEventListener('scroll', closeOnOutsideScroll, true);
+    window.addEventListener('resize', closeOnWidthChange);
     return () => {
       window.removeEventListener('scroll', closeOnOutsideScroll, true);
-      window.removeEventListener('resize', close);
+      window.removeEventListener('resize', closeOnWidthChange);
     };
-  }, [open]);
+  }, [open, isSheet]);
 
   return (
     <span className={styles.popoverAnchor}>
@@ -68,15 +65,27 @@ export function Popover({
         aria-expanded={open}
         onClick={() => {
           const button = buttonRef.current;
-          setPosition(open || !button ? null : panelPosition(button, alignRight));
+          const viewport = { width: window.innerWidth, height: window.innerHeight };
+          setPosition(
+            open || !button
+              ? null
+              : panelPosition(button.getBoundingClientRect(), alignRight, viewport),
+          );
         }}
       >
         {label}
       </button>
       {position && (
         <>
-          <div className={styles.backdrop} onClick={() => setPosition(null)} />
-          <div ref={panelRef} className={styles.popover} style={position}>
+          <div
+            className={isSheet ? styles.sheetBackdrop : styles.backdrop}
+            onClick={() => setPosition(null)}
+          />
+          <div
+            ref={panelRef}
+            className={isSheet ? `${styles.popover} ${styles.sheet}` : styles.popover}
+            style={isSheet ? undefined : position}
+          >
             {children}
           </div>
         </>

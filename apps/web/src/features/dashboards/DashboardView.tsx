@@ -1,11 +1,12 @@
-import { GRID_COLUMNS, type WidgetType } from '@notiz/shared';
+import { type DashboardWidget, GRID_COLUMNS, type WidgetType } from '@notiz/shared';
 import type { ReactElement } from 'react';
 import GridLayout, { useContainerWidth } from 'react-grid-layout';
 import { absoluteStrategy } from 'react-grid-layout/core';
 import 'react-grid-layout/css/styles.css';
+import { useBreakpoint } from '../../lib/useMediaQuery';
 import dbStyles from '../databases/Database.module.css';
 import styles from './Dashboard.module.css';
-import { changedLayouts, toGridLayout } from './layout';
+import { changedLayouts, stackedHeight, stackedWidgets, toGridLayout } from './layout';
 import {
   useCreateWidget,
   useDashboard,
@@ -16,6 +17,8 @@ import {
 import { DRAG_HANDLE_CLASS, WidgetCard } from './WidgetCard';
 
 const ROW_HEIGHT = 40;
+/** react-grid-layout's default margin, reused as the gap between stacked widgets. */
+const GAP = 10;
 /** The settings popover renders inside the header (the drag handle); using it must not drag. */
 const dragCancelSelector = `button, .${dbStyles.popover ?? ''}, .${dbStyles.backdrop ?? ''}`;
 const newWidgetButtons: { type: WidgetType; label: string }[] = [
@@ -38,6 +41,16 @@ export function DashboardView({ dashboardId }: { dashboardId: string }): ReactEl
     deleteWidget.error ??
     saveLayout.error;
   const widgets = dashboard.data?.widgets ?? [];
+  const isPhone = useBreakpoint() === 'phone';
+
+  const card = (widget: DashboardWidget): ReactElement => (
+    <WidgetCard
+      widget={widget}
+      saving={updateWidget.isPending}
+      onSave={(config) => updateWidget.mutate({ id: widget.id, input: { config } })}
+      onDelete={() => deleteWidget.mutate(widget.id)}
+    />
+  );
 
   return (
     <div className={styles.dashboard}>
@@ -59,8 +72,18 @@ export function DashboardView({ dashboardId }: { dashboardId: string }): ReactEl
       {dashboard.data && widgets.length === 0 && (
         <p className={dbStyles.muted}>Add a number or a chart to start.</p>
       )}
+      {isPhone && (
+        // One column without dragging or resizing, so the saved desktop layout stays as it is.
+        <div className={styles.stack} data-testid="dashboard-stack">
+          {stackedWidgets(widgets).map((widget) => (
+            <div key={widget.id} style={{ height: stackedHeight(widget, ROW_HEIGHT, GAP) }}>
+              {card(widget)}
+            </div>
+          ))}
+        </div>
+      )}
       <div ref={containerRef}>
-        {mounted && widgets.length > 0 && (
+        {!isPhone && mounted && widgets.length > 0 && (
           <GridLayout
             width={width}
             layout={toGridLayout(widgets)}
@@ -73,14 +96,7 @@ export function DashboardView({ dashboardId }: { dashboardId: string }): ReactEl
             }}
           >
             {widgets.map((widget) => (
-              <div key={widget.id}>
-                <WidgetCard
-                  widget={widget}
-                  saving={updateWidget.isPending}
-                  onSave={(config) => updateWidget.mutate({ id: widget.id, input: { config } })}
-                  onDelete={() => deleteWidget.mutate(widget.id)}
-                />
-              </div>
+              <div key={widget.id}>{card(widget)}</div>
             ))}
           </GridLayout>
         )}

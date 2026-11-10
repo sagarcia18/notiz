@@ -38,3 +38,121 @@
   min-width: 0;
   padding: 48px 96px;
 }
+
+/* Phones and tablets: see lib/breakpoints.ts for the numbers. */
+.topBar,
+.overlay {
+  display: none;
+}
+
+.menuButton {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.menuButton:hover {
+  background: var(--hover);
+}
+
+.topBrand {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (max-width: 1024px) {
+  .topBar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    background: var(--sidebar-bg);
+    z-index: 20;
+  }
+
+  /* Off-canvas drawer; slides in over the page when open. */
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    width: min(300px, 85vw);
+    height: 100dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: none;
+  }
+
+  .sidebarOpen {
+    transform: none;
+    box-shadow: 0 0 32px rgba(0, 0, 0, 0.25);
+  }
+
+  .overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 39;
+    background: rgba(15, 15, 15, 0.4);
+  }
+
+  .main {
+    padding: 32px 40px;
+  }
+}
+
+/* Tablets: a thin rail on the left with the menu button. */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .topBar {
+    position: sticky;
+    top: 0;
+    flex-direction: column;
+    width: 52px;
+    height: 100vh;
+    padding: 4px;
+    border-right: 1px solid var(--border);
+  }
+
+  .topBrand {
+    display: none;
+  }
+}
+
+/* Phones: a bar at the top with the menu button and the app name. */
+@media (max-width: 767px) {
+  .shell {
+    flex-direction: column;
+  }
+
+  .topBar {
+    position: sticky;
+    top: 0;
+    height: 48px;
+    padding: 0 8px 0 2px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .main {
+    padding: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
+}
+
+/* Safety net: nothing inside a page may widen the screen on phones (tables scroll on their own). */
+@media (max-width: 767px) {
+  .main {
+    overflow-x: clip;
+  }
+}
