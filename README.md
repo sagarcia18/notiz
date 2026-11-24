@@ -16,6 +16,10 @@ otiz` (GitHub may ask you to sign in) or pulls the newest code when it is alread
 Running it again is safe: it never overwrites `.env` or `data/`. Your notes are not copied between computers; each one starts with an empty database. Another folder: `setup-notiz.cmd -RepoDir D:
 otiz`. The work is done by `scripts/setup.ps1`.
 
+## Start Notiz (one click)
+
+Double-click [`start-notiz.cmd`](start-notiz.cmd). It starts the API and the built web app (`pnpm serve`) and opens Notiz in your browser once it answers. When Tailscale is running and logged in, the web app listens on this computer's Tailscale address (it overrides `WEB_HOST` from `.env` for that run), so the phone opens the same URL; otherwise Notiz stays on `http://localhost:5173`. If Notiz is already running it only opens the browser. Close the window or press Ctrl+C to stop. Options: `start-notiz.cmd -Dev` (dev server with live reload while coding), `start-notiz.cmd -Local` (ignore Tailscale). The firewall rule for the phone is still a one-time manual step (see below). The work is done by `scripts/start.ps1`.
+
 ## Requirements
 
 - Node.js 22 or newer
