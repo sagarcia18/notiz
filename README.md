@@ -2,6 +2,20 @@
 
 Personal, local-first replacement for Notion. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## New computer (one click)
+
+Download [`setup-notiz.cmd`](setup-notiz.cmd) (or use it from an existing checkout) and double-click it. It:
+
+1. installs Git and Node.js LTS with `winget` if they are missing (Windows may ask for permission),
+2. installs the pnpm version pinned in `package.json` through corepack into `%USERPROFILE%.localin` and adds that folder to your PATH,
+3. clones this repo into `%USERPROFILE%source
+epos
+otiz` (GitHub may ask you to sign in) or pulls the newest code when it is already there and has no local changes,
+4. runs `pnpm install --frozen-lockfile` (the exact versions from `pnpm-lock.yaml`), creates `.env` from `.env.example` if there is none, and runs `pnpm db:migrate`.
+
+Running it again is safe: it never overwrites `.env` or `data/`. Your notes are not copied between computers; each one starts with an empty database. Another folder: `setup-notiz.cmd -RepoDir D:
+otiz`. The work is done by `scripts/setup.ps1`.
+
 ## Requirements
 
 - Node.js 22 or newer
