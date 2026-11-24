@@ -5,7 +5,8 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/coverage/**', 'data/**'],
+    // .claude/ holds agent worktrees: full checkouts that would be linted twice.
+    ignores: ['**/node_modules/**', '**/dist/**', '**/coverage/**', 'data/**', '.claude/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
