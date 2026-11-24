@@ -1,3 +1,4 @@
 * text=auto eol=lf
-*.cmd text eol=crlf
+# Kept byte-for-byte with CRLF, so a single raw download from GitHub also runs in cmd.exe.
+*.cmd -text
 *.ps1 text eol=crlf
